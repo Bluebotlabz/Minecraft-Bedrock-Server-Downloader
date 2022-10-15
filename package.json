@@ -1,0 +1,15 @@
+{
+  "name": "minecraft-bedrock-server-replayer",
+  "version": "0.1.0",
+  "description": "Replay Servers and stuff",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bedrock-protocol": "^3.20.0"
+  }
+}
