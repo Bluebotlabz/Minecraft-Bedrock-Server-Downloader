@@ -8,7 +8,7 @@
     "start": "node index.js"
   },
   "author": "",
-  "license": "ISC",
+  "license": "proprietary",
   "dependencies": {
     "bedrock-protocol": "^3.20.0"
   }

@@ -9,7 +9,7 @@ const relay = new Relay({
   /* Where to send upstream packets to */
   destination: {
     host: '40.115.98.220',
-    port: 30134
+    port: 30731
   }
 })
 
@@ -24,19 +24,32 @@ async function writeLog(logData) {
 }
 
 function csvExcape(data) {
-  for (let i = 0; i < data.length; i++) {
+  for (var i = 0; i < data.length; i++) {
     data[i] = data[i].replaceAll('"', '""')
     if (data[i].includes('"') || data[i].includes(',')) {
       data[i] = '"' + data[i] + '"'
     }
   }
 
-  return data[i].join(',')
+  return data.join(',')
 }
+
+function paramsToString(data) {
+  return( JSON.stringify(data, (key, value) =>
+    typeof value === 'bigint'
+        ? value.toString()
+        : value // return everything else unchanged
+  ));
+}
+
+var globalIgnoreRequests = ["resource_pack_chunk_data"]
+var clientIgnoreRequests = ["move_player"]
+var serverIgnoreRequests = [""]
+var logIgnoreRequests = [""]
 
 relay.listen() // Tell the server to start listening.
 
-logData = csvExcape(["receiptient", name, JSON.stringify(params)]);
+logData = csvExcape(["receiptient", "name", "json"]);
 writeLog(logData);
 
 console.log("Ready.");
@@ -46,26 +59,28 @@ relay.on('connect', player => {
 
   // Server is sending a message to the client.
   player.on('clientbound', ({ name, params }) => {
-    logData = csvExcape(["clientbound", name, JSON.stringify(params)]);
-    writeLog(logData);
+    if (!globalIgnoreRequests.includes(name) && !clientIgnoreRequests.includes(name)) {
+      logData = csvExcape(["clientbound", name, paramsToString(params)]);
+      writeLog(logData);
+    }
 
-    if (name !== 'resource_pack_chunk_data') {
+    if (!clientIgnoreRequests.includes(name)) {
       console.log("clientbound - " + name);
     }
 
     if (name === 'disconnect') { // Intercept kick
-      params.message = 'Intercepted' // Change kick message to "Intercepted"
+      //params.message = 'Intercepted' // Change kick message to "Intercepted"
     }
   })
 
   // Client is sending a message to the server
   player.on('serverbound', ({ name, params }) => {
-    logData = csvExcape(["serverbound", name, JSON.stringify(params)]);
-    writeLog(logData);
-
-    if (name !== 'resource_pack_chunk_data') {
-      console.log("serverbound - " + name);
+    if (!globalIgnoreRequests.includes(name) && !serverIgnoreRequests.includes(name)) {
+      logData = csvExcape(["serverbound", name, paramsToString(params)]);
+      writeLog(logData);
     }
+
+    console.log("serverbound - " + name);
 
     if (name === 'text') { // Intercept chat message to server and append time.
       //params.message += `, on ${new Date().toLocaleString()}`
