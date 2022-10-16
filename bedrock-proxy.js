@@ -8,7 +8,7 @@ const relay = new Relay({
   port: 19132,
   /* Where to send upstream packets to */
   destination: {
-    host: '40.115.98.220',
+    host: '127.0.0.1',
     port: 30731
   }
 })
