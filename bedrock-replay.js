@@ -85,10 +85,17 @@ server.on('connect', client => {
 
         client.queue('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
 
+
         // Send all the chunks, idc how many u want, client
         for (const file of fs.readdirSync(`./chunks`)) {
           const chunkData = JSON.parse(fs.readFileSync(`./chunks/` + file))
           client.queue("level_chunk", chunkData)
+        }
+
+        // Send all paintings
+        for (const file of fs.readdirSync(`./paintings`)) {
+          const paintingData = JSON.parse(fs.readFileSync(`./paintings/` + file))
+          client.queue("add_painting", paintingData)
         }
 
         // Send all the entities
@@ -159,7 +166,6 @@ server.on('connect', client => {
 
     // Respond to tick synchronization packets
     client.on('tick_sync', (packet) => {
-      console.log("TICKEROOOOOO")
       client.queue('tick_sync', {
         request_time: packet.request_time,
         response_time: BigInt(Date.now())

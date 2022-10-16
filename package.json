@@ -1,13 +1,13 @@
 {
   "name": "minecraft-bedrock-server-replayer",
-  "version": "0.1.0",
-  "description": "Replay Servers and stuff",
-  "main": "index.js",
+  "version": "0.0.1",
+  "description": "Play on Minecraft Servers... Even When They're Offline!",
+  "main": "bedrock-replay.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node bedrock-replay.js",
+    "proxy": "node bedrock-proxy.js"
   },
-  "author": "",
+  "author": "Bluebotlabz",
   "license": "proprietary",
   "dependencies": {
     "bedrock-protocol": "^3.20.0",
