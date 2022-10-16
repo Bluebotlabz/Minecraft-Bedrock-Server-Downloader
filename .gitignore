@@ -128,3 +128,8 @@ dist
 
 # Super secret
 /Z7ZKY7YMCAA=/
+
+# Chunk data
+chunks/
+data/
+subchunks/
