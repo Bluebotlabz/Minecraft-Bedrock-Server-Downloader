@@ -133,3 +133,6 @@ dist
 chunks/
 data/
 subchunks/
+entities/
+npc_dialogue/
+paintings/
