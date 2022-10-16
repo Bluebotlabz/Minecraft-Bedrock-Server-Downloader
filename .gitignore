@@ -127,7 +127,7 @@ dist
 .pnp.*
 
 # Super secret
-/Z7ZKY7YMCAA=/
+/resourcepack/
 
 # Chunk data
 chunks/
@@ -136,3 +136,5 @@ subchunks/
 entities/
 npc_dialogue/
 paintings/
+*.csv
+*.zip

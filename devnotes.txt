@@ -1,0 +1,2 @@
+1. Crafting data json must be replaced with a vanilla one if used
+2. update_attributes.json and start_game.json need runtime_entity_id changed to 1 for player movement and "status" to work properly
