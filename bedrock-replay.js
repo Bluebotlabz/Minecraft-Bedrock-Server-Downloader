@@ -7,6 +7,7 @@ const get = (packetName) => {
   return require(`./data/${packetName}.json`);
 }
 
+// Create server
 const server = bedrock.createServer({
   host: '0.0.0.0',       // optional. host to bind as.
   port: 19132,           // optional
@@ -18,9 +19,11 @@ const respawnPacket = get('respawn')
 
 console.log("Server ready.");
 
+
+
 server.on('connect', client => {
   client.on('join', () => {
-
+    // Debug client packets
     //client.on('packet', (packet) => {
     //  console.log('Got client packet', packet)
     //})
@@ -35,11 +38,15 @@ server.on('connect', client => {
     client.on('resource_pack_client_response', (data) => {
       if (data.response_status === 'have_all_packs') {
         //client.write('network_settings', { compression_threshold: 1 })
+        // Force client to use the cached mob vote resource pack
         client.queue("resource_pack_stack", {"must_accept":true,"behavior_packs":[],"resource_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","name":""}],"game_version":"*","experiments":[{"name":"spectator_mode","enabled":true},{"name":"data_driven_items","enabled":true}],"experiments_previously_used":true})
       } else if (data.response_status === 'completed') {
         // Client ready
         console.log("client ready");
 
+
+
+        // Send the "initialization packets"
         client.queue('player_list', get('player_list'))
         client.queue('start_game', get('start_game'))
 
@@ -78,8 +85,9 @@ server.on('connect', client => {
         client.queue('chunk_radius_update', { chunk_radius: 32 })
         client.queue('respawn', get('respawn'))
 
-        client.queue('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
 
+
+        client.queue('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
 
         // Send all the chunks, idc how many the client wants
         for (const file of fs.readdirSync(`./chunks`)) {
@@ -106,8 +114,11 @@ server.on('connect', client => {
           client.queue("add_entity", entityData)
         }
 
+
+
         // Constantly send this packet to the client to tell it the center position for chunks. The client should then request these
         // missing chunks from the us if it's missing any within the radius. `radius` is in blocks.
+        // TODO: Make better
         loop = setInterval(() => {
           console.log("Sending network chonk")
           client.write('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
@@ -121,10 +132,13 @@ server.on('connect', client => {
       }
     })
 
+    // Handle client subchunk requests
     client.on("subchunk_request", (data) => {
-
       try {
-        const subchunkFile = JSON.parse(fs.readFileSync("./optimizedSubchunks/" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
+        // Generate subchunk file path and parse its JSON
+        const subchunkFile = JSON.parse(fs.readFileSync("./subchunks/" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
+
+        // Create skeleton response
         let subchunkData = {
           cache_enabled: subchunkFile.cache_enabled,
           dimension: subchunkFile.dimension,
@@ -132,22 +146,26 @@ server.on('connect', client => {
           entries: []
         }
 
+        // For every requested "subsubchunk", add it to the response if it exists
         for (const request of data.requests) {
-          console.log(request)
-          const subchunkDataBlockKey = String(request.dx) + "_" + String(request.dy) + "_" + String(request.dz)
-          if (Object.keys(subchunkFile.entries).includes(subchunkDataBlockKey)) {
-            subchunkData.entries.push(subchunkFile.entries[subchunkDataBlockKey])
+          const subSubchunkKey = String(request.dx) + "_" + String(request.dy) + "_" + String(request.dz)
+
+          if (Object.keys(subchunkFile.entries).includes(subSubchunkKey)) {
+            subchunkData.entries.push(subchunkFile.entries[subSubchunkKey])
           }
         }
 
+        // Send the response
         client.queue("subchunk", subchunkData)
       } catch (e) {
+        // If there is an error, send warning to console
         if (e.code === 'ENOENT' && e.syscall === 'open') {
           console.warn("WARN: Client requested subchunk", e.path, "but it was not found, ignoring request")
         }
       }
     })
 
+    // For debugging
     client.on('inventory_transaction', (data) => {
       console.log("inventory",data)
     })
@@ -158,12 +176,6 @@ server.on('connect', client => {
         request_time: packet.request_time,
         response_time: BigInt(Date.now())
       })
-    })
-
-    // Leftover example code be like
-    // We can listen for text packets. See proto.yml for documentation.
-    client.on('text', (packet) => {
-      console.log('Client got text packet', packet)
     })
   })
 })
