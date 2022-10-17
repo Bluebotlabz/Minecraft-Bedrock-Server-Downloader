@@ -128,6 +128,9 @@ dist
 
 # Super secret
 /resourcepack/
+LocalCache/
+blob_cache/
+optimizedSubchunks/
 
 # Chunk data
 chunks/
