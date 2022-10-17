@@ -1,8 +1,7 @@
 //process.env.DEBUG = 'minecraft-protocol' // packet logging
 
 const fs = require('fs');
-const bedrock = require('bedrock-protocol')
-const bigJSON = require('json-bigint')({ storeAsString: true, useNativeBigInt: true });
+const bedrock = require('bedrock-protocol');
 
 const get = (packetName) => {
   return require(`./data/${packetName}.json`);
@@ -20,10 +19,7 @@ const respawnPacket = get('respawn')
 console.log("Server ready.");
 
 server.on('connect', client => {
-  client.on('join', () => { // The client has joined the server.
-    //const d = new Date()  // Once client is in the server, send a colorful kick message
-    //client.disconnect(`Good ${d.getHours() < 12 ? '§emorning§r' : '§3afternoon§r'} :)\n\nMy time is ${d.toLocaleString()} !`)
-    //client.disconnect("hello");
+  client.on('join', () => {
 
     client.on('packet', (packet) => {
       console.log('Got client packet', packet)
@@ -68,6 +64,7 @@ server.on('connect', client => {
 
         //client.queue('inventory_content', get('inventory_content'))
         //client.queue('crafting_data', get('crafting_data'))
+
         client.queue('player_hotbar', {"selected_slot":0,"window_id":"inventory","select_slot":true})
 
         //client.queue('available_commands', get('available_commands'))
@@ -80,13 +77,10 @@ server.on('connect', client => {
         client.queue('chunk_radius_update', { chunk_radius: 32 })
         client.queue('respawn', get('respawn'))
 
-
-        //client.queue("network_chunk_publisher_update", {"coordinates":{"x":18,"y":25,"z":-39},"radius":64,"saved_chunks":[]})
-
         client.queue('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
 
 
-        // Send all the chunks, idc how many u want, client
+        // Send all the chunks, idc how many the client wants
         for (const file of fs.readdirSync(`./chunks`)) {
           const chunkData = JSON.parse(fs.readFileSync(`./chunks/` + file))
           client.queue("level_chunk", chunkData)
@@ -100,13 +94,15 @@ server.on('connect', client => {
 
         // Send all the entities
         for (const file of fs.readdirSync(`./entities`)) {
-          try {
-            const entityData = JSON.parse(fs.readFileSync(`./entities/` + file))
+          const entityData = JSON.parse(fs.readFileSync(`./entities/` + file), (key, value) => {
+            if (key == "_value") {
+              return null
+            } else {
+              return value
+            }
+          })
 
-            client.queue("add_entity", entityData)
-          } catch {
-            console.log("error",file)
-          }
+          client.queue("add_entity", entityData)
         }
 
         // Constantly send this packet to the client to tell it the center position for chunks. The client should then request these
@@ -124,29 +120,11 @@ server.on('connect', client => {
       }
     })
 
-    //client.on('subchunk_request', (data) => {
-    //  // Send all the chunks, idc how many u want, client
-    //  console.log("sending chunk data")
-//
-    //  client.queue("network_chunk_publisher_update", {"coordinates":{"x":Math.round(clientData.position.x),"y":Math.round(clientData.position.x),"z":Math.round(clientData.position.x)},"radius":64,"saved_chunks":[]})
-    //  
-    //  for (var i = 0; i < worldChunks.length; i++) {
-    //    client.queue("level_chunk", worldChunks[i])
-    //  }
-    //})
-
     client.on("subchunk_request", (data) => {
       console.log("subchunk request:", data.origin)
 
       for (const file of fs.readdirSync(`./subchunks`)) {
-        // I'm sorry HDD...
         const chunkData = JSON.parse(fs.readFileSync(`./subchunks/` + file))
-        // console.log('Sending chunk', buffer)
-        //client.sendBuffer(buffer)
-
-        //console.log(file)
-
-        //console.log(chunkData.origin)
 
         if (chunkData.origin.x === data.origin.x && chunkData.origin.y === data.origin.y && chunkData.origin.z === data.origin.z) {
           console.log("\n\n\nSending",chunkData.origin,"\n\n\n")
@@ -154,11 +132,6 @@ server.on('connect', client => {
         }
       }
     })
-
-    //client.on('move_player', (data) => {
-    //  // What is anticheat lol
-    //  client.queue("move_player", data)
-    //})
 
     client.on('inventory_transaction', (data) => {
       console.log("inventory",data)
@@ -172,7 +145,7 @@ server.on('connect', client => {
       })
     })
 
-    //client.on('resource_pack_client_response')
+    // Leftover example code be like
     // We can listen for text packets. See proto.yml for documentation.
     client.on('text', (packet) => {
       console.log('Client got text packet', packet)
