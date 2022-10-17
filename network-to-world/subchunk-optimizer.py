@@ -17,14 +17,16 @@ for subchunkFileName in os.listdir(legacySubchunkFolder):
         print("==========")
         print("coords: " + str(subchunkData["origin"]))
 
-        optimizedSubchunkFileName = '_'.join([ str(subchunkData["origin"]["x"]), str(subchunkData["origin"]["y"]), str(subchunkData["origin"]["z"]) ]) + ".json"
+        optimizedSubchunkFileName = '_'.join(( str(subchunkData["origin"]["x"]), str(subchunkData["origin"]["y"]), str(subchunkData["origin"]["z"]) )) + ".json"
         try:
-            with open("./optimizedSubchunks/" + optimizedSubchunkFileName, 'r+' ) as optimizedSubchunkFile:
+            with open(optimizedSubchunkFolder + optimizedSubchunkFileName, 'r+' ) as optimizedSubchunkFile:
                 print("Reading from file")
                 
                 optimizedSubchunkData = json.load(optimizedSubchunkFile)
                 
-                optimizedSubchunkData["entries"] += subchunkData["entries"]
+                #optimizedSubchunkData["entries"] += subchunkData["entries"]
+                for entry in subchunkData["entries"]:
+                    optimizedSubchunkData["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
 
                 # Go to start of file and remove all contents:
                 optimizedSubchunkFile.seek(0)
@@ -34,11 +36,16 @@ for subchunkFileName in os.listdir(legacySubchunkFolder):
                 optimizedSubchunkFile.write(json.dumps(optimizedSubchunkData))
 
         except FileNotFoundError:
-            with open("./optimizedSubchunks/" + optimizedSubchunkFileName, 'w' ) as optimizedSubchunkFile:
-                optimizedSubchunkData = subchunkData.copy()
-                optimizedSubchunkData["entries"] = []
+            with open(optimizedSubchunkFolder + optimizedSubchunkFileName, 'w' ) as optimizedSubchunkFile:
+                #optimizedSubchunkData = subchunkData.copy()
+                #optimizedSubchunkData["entries"] = []
                 
-                optimizedSubchunkData["entries"] += subchunkData["entries"]
+                optimizedSubchunkData = subchunkData.copy()
+
+                optimizedSubchunkData["entries"] = {}
+
+                for entry in subchunkData["entries"]:
+                    optimizedSubchunkData["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
 
                 #print(optimizedSubchunkData)
                 optimizedSubchunkFile.write(json.dumps(optimizedSubchunkData))
