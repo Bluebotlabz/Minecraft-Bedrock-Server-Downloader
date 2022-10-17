@@ -130,6 +130,7 @@ dist
 /resourcepack/
 LocalCache/
 blob_cache/
+optimizedSubchunks/
 
 # Chunk data
 chunks/
