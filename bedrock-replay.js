@@ -21,10 +21,11 @@ console.log("Server ready.");
 server.on('connect', client => {
   client.on('join', () => {
 
-    client.on('packet', (packet) => {
-      console.log('Got client packet', packet)
-    })
+    //client.on('packet', (packet) => {
+    //  console.log('Got client packet', packet)
+    //})
 
+    // Log client connection
     console.log('New connection', client.connection.address)
 
     // Send resource pack data (on join)
@@ -121,14 +122,28 @@ server.on('connect', client => {
     })
 
     client.on("subchunk_request", (data) => {
-      console.log("subchunk request:", data.origin)
 
-      for (const file of fs.readdirSync(`./subchunks`)) {
-        const chunkData = JSON.parse(fs.readFileSync(`./subchunks/` + file))
+      try {
+        const subchunkFile = JSON.parse(fs.readFileSync("./optimizedSubchunks/" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
+        let subchunkData = {
+          cache_enabled: subchunkFile.cache_enabled,
+          dimension: subchunkFile.dimension,
+          origin: subchunkFile.origin,
+          entries: []
+        }
 
-        if (chunkData.origin.x === data.origin.x && chunkData.origin.y === data.origin.y && chunkData.origin.z === data.origin.z) {
-          console.log("\n\n\nSending",chunkData.origin,"\n\n\n")
-          client.queue("subchunk", chunkData)
+        for (const request of data.requests) {
+          console.log(request)
+          const subchunkDataBlockKey = String(request.dx) + "_" + String(request.dy) + "_" + String(request.dz)
+          if (Object.keys(subchunkFile.entries).includes(subchunkDataBlockKey)) {
+            subchunkData.entries.push(subchunkFile.entries[subchunkDataBlockKey])
+          }
+        }
+
+        client.queue("subchunk", subchunkData)
+      } catch (e) {
+        if (e.code === 'ENOENT' && e.syscall === 'open') {
+          console.warn("WARN: Client requested subchunk", e.path, "but it was not found, ignoring request")
         }
       }
     })
