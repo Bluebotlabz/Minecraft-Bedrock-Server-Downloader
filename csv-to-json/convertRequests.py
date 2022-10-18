@@ -1,6 +1,28 @@
 import json
 import os
 
+
+
+def chunkDumper(csvFile, outputDir):
+    try:
+        os.mkdir(outputDir)
+    except:
+        pass
+
+    with open(csvFile) as file:
+        optimizedChunkData = []
+
+        for line in file:
+            line = line.split(",")
+            if (line[1] == "level_chunk"):
+                chunkData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+                
+                optimizedChunkData.append(chunkData)
+
+        with open(outputDir + "/chunks.json", 'w' ) as optimizedChunkFile:
+            # Write file
+            optimizedChunkFile.write(json.dumps(optimizedChunkData))
+
 def subchunkDumper(csvFile, outputDir):
     try:
         os.mkdir(outputDir)
@@ -13,12 +35,11 @@ def subchunkDumper(csvFile, outputDir):
             if (line[1] == "subchunk"):
                 subchunkData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
 
-                optimizedSubchunkFileName = '_'.join(( str(subchunkData["origin"]["x"]), str(subchunkData["origin"]["y"]), str(subchunkData["origin"]["z"]) )) + ".json"
+                optimizedSubchunkFileName = "subchunk_" + '_'.join(( str(subchunkData["origin"]["x"]), str(subchunkData["origin"]["y"]), str(subchunkData["origin"]["z"]) )) + ".json"
                 try:
                     with open(outputDir + optimizedSubchunkFileName, 'r+' ) as optimizedSubchunkFile:
                         optimizedSubchunkData = json.load(optimizedSubchunkFile)
                         
-                        #optimizedSubchunkData["entries"] += subchunkData["entries"]
                         for entry in subchunkData["entries"]:
                             optimizedSubchunkData["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
 
@@ -30,10 +51,7 @@ def subchunkDumper(csvFile, outputDir):
                         optimizedSubchunkFile.write(json.dumps(optimizedSubchunkData))
 
                 except FileNotFoundError:
-                    with open(outputDir + optimizedSubchunkFileName, 'w' ) as optimizedSubchunkFile:
-                        #optimizedSubchunkData = subchunkData.copy()
-                        #optimizedSubchunkData["entries"] = []
-                        
+                    with open(outputDir + optimizedSubchunkFileName, 'w' ) as optimizedSubchunkFile:                        
                         optimizedSubchunkData = subchunkData.copy()
 
                         optimizedSubchunkData["entries"] = {}
@@ -41,7 +59,6 @@ def subchunkDumper(csvFile, outputDir):
                         for entry in subchunkData["entries"]:
                             optimizedSubchunkData["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
 
-                        #print(optimizedSubchunkData)
                         optimizedSubchunkFile.write(json.dumps(optimizedSubchunkData))
 
 def splitRequests(csvFile, outputDir, filterBound, ignorePackets = []):
@@ -129,10 +146,10 @@ print("Converting start game packet")
 dumpStartGame("./networkData.csv", "./data/")
 
 print("Converting chunk packets")
-splitRequestsToJSON("./networkData.csv", "./chunks/", ["clientbound"], ["level_chunk"])
+chunkDumper("./networkData.csv", "./chunkdata/")
 
 print("Converting subchunk packets")
-subchunkDumper("./networkData.csv", "./subchunks/")
+subchunkDumper("./networkData.csv", "./chunkdata/")
 
 print("Converting entity packets")
 splitRequestsToJSON("./networkData.csv", "./entities/", ["clientbound"], ["add_entity"])
