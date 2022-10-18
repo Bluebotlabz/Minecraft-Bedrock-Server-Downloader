@@ -40,8 +40,9 @@ npm start
 8. Enjoy!
 
 ## TODO
-- [ ] Replace subchunk packets with custom subchunk format
-- [ ] Integrate packet conversion directly into proxy
+- [x] Replace subchunk packets with custom subchunk format
+- [x] Integrate packet conversion directly into proxy
+- [ ] Fix NPCs
 - [ ] Fix inventory packets
 - [ ] Fix interaction packets
 - [ ] Fix sound packets
