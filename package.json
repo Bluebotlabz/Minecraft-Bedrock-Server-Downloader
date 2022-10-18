@@ -12,6 +12,6 @@
   "dependencies": {
     "bedrock-protocol": "^3.20.0",
     "bedrock-provider": "^3.0.0",
-    "json-bigint": "^1.0.0"
+    "colors": "^1.4.0"
   }
 }

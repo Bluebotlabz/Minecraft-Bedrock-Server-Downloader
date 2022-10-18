@@ -1,13 +1,14 @@
-//process.env.DEBUG = 'minecraft-protocol' // packet logging
+process.env.DEBUG = 'minecraft-protocol' // packet logging
 
 const fs = require('fs');
-const bedrock = require('bedrock-protocol')
-const bigJSON = require('json-bigint')({ storeAsString: true, useNativeBigInt: true });
+const bedrock = require('bedrock-protocol');
+const colors = require('colors/safe');
 
 const get = (packetName) => {
   return require(`./data/${packetName}.json`);
 }
 
+// Create server
 const server = bedrock.createServer({
   host: '0.0.0.0',       // optional. host to bind as.
   port: 19132,           // optional
@@ -17,18 +18,18 @@ const server = bedrock.createServer({
 console.log("Loading files...")
 const respawnPacket = get('respawn')
 
-console.log("Server ready.");
+console.log(colors.green("Server ready."));
+
+
 
 server.on('connect', client => {
-  client.on('join', () => { // The client has joined the server.
-    //const d = new Date()  // Once client is in the server, send a colorful kick message
-    //client.disconnect(`Good ${d.getHours() < 12 ? '§emorning§r' : '§3afternoon§r'} :)\n\nMy time is ${d.toLocaleString()} !`)
-    //client.disconnect("hello");
+  client.on('join', () => {
+    // Debug client packets
+    //client.on('packet', (packet) => {
+    //  console.log('Got client packet', packet)
+    //})
 
-    client.on('packet', (packet) => {
-      console.log('Got client packet', packet)
-    })
-
+    // Log client connection
     console.log('New connection', client.connection.address)
 
     // Send resource pack data (on join)
@@ -38,12 +39,16 @@ server.on('connect', client => {
     client.on('resource_pack_client_response', (data) => {
       if (data.response_status === 'have_all_packs') {
         //client.write('network_settings', { compression_threshold: 1 })
+        // Force client to use the cached mob vote resource pack
         client.queue("resource_pack_stack", {"must_accept":true,"behavior_packs":[],"resource_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","name":""}],"game_version":"*","experiments":[{"name":"spectator_mode","enabled":true},{"name":"data_driven_items","enabled":true}],"experiments_previously_used":true})
       } else if (data.response_status === 'completed') {
         // Client ready
         console.log("client ready");
 
-        client.queue('player_list', get('player_list'))
+
+
+        // Send the "initialization packets"
+        //client.queue('player_list', get('player_list'))
         client.queue('start_game', get('start_game'))
 
         client.queue('item_component', { entries: [] })
@@ -55,7 +60,7 @@ server.on('connect', client => {
         client.queue('update_adventure_settings', get('update_adventure_settings'))
         client.queue('update_abilities', get('update_abilities'))
         client.queue('game_rules_changed', get('game_rules_changed'))
-        client.queue('player_list', get('player_list'))
+        //client.queue('player_list', get('player_list'))
         client.queue('biome_definition_list', get('biome_definition_list'))
         client.queue('player_fog', get('player_fog'))
         client.queue('available_entity_identifiers', get('available_entity_identifiers'))
@@ -68,12 +73,13 @@ server.on('connect', client => {
 
         //client.queue('inventory_content', get('inventory_content'))
         //client.queue('crafting_data', get('crafting_data'))
+
         client.queue('player_hotbar', {"selected_slot":0,"window_id":"inventory","select_slot":true})
 
         //client.queue('available_commands', get('available_commands'))
 
         //client.queue('set_entity_data', get('set_entity_data'))
-        client.queue('entity_evemt', {"runtime_entity_id":"1","event_id":"player_check_treasure_hunter_achievement","data":0})
+        client.queue('entity_event', {"runtime_entity_id":"1","event_id":"player_check_treasure_hunter_achievement","data":0})
         client.queue('set_entity_data', {"runtime_entity_id":"1","metadata":[{"key":"flags","type":"long","value":{"onfire":false,"sneaking":false,"riding":false,"sprinting":false,"action":false,"invisible":false,"tempted":false,"inlove":false,"saddled":false,"powered":false,"ignited":false,"baby":false,"converting":false,"critical":false,"can_show_nametag":false,"always_show_nametag":false,"no_ai":false,"silent":false,"wallclimbing":false,"can_climb":true,"swimmer":false,"can_fly":false,"walker":false,"resting":false,"sitting":false,"angry":false,"interested":false,"charged":false,"tamed":false,"orphaned":false,"leashed":false,"sheared":false,"gliding":false,"elder":false,"moving":false,"breathing":true,"chested":false,"stackable":false,"showbase":false,"rearing":false,"vibrating":false,"idling":false,"evoker_spell":false,"charge_attack":false,"wasd_controlled":false,"can_power_jump":false,"linger":false,"has_collision":true,"affected_by_gravity":true,"fire_immune":false,"dancing":false,"enchanted":false,"show_trident_rope":false,"container_private":false,"transforming":false,"spin_attack":false,"swimming":false,"bribed":false,"pregnant":false,"laying_egg":false,"rider_can_pick":false,"transition_sitting":false,"eating":false,"laying_down":false}}],"tick":"0"})
         client.queue('set_health', get('set_health'))
 
@@ -81,15 +87,14 @@ server.on('connect', client => {
         client.queue('respawn', get('respawn'))
 
 
-        //client.queue("network_chunk_publisher_update", {"coordinates":{"x":18,"y":25,"z":-39},"radius":64,"saved_chunks":[]})
 
+        // Send chunk publisher update
         client.queue('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
 
-
-        // Send all the chunks, idc how many u want, client
-        for (const file of fs.readdirSync(`./chunks`)) {
-          const chunkData = JSON.parse(fs.readFileSync(`./chunks/` + file))
-          client.queue("level_chunk", chunkData)
+        // Send all the chunks in the chunk file
+        const chunkData = JSON.parse(fs.readFileSync(`./chunkdata/chunks.json`))
+        for (const chunkPacket of chunkData) {
+          client.queue("level_chunk", chunkPacket)
         }
 
         // Send all paintings
@@ -100,17 +105,22 @@ server.on('connect', client => {
 
         // Send all the entities
         for (const file of fs.readdirSync(`./entities`)) {
-          try {
-            const entityData = JSON.parse(fs.readFileSync(`./entities/` + file))
+          const entityData = JSON.parse(fs.readFileSync(`./entities/` + file), (key, value) => {
+            if (key == "_value") {
+              return null
+            } else {
+              return value
+            }
+          })
 
-            client.queue("add_entity", entityData)
-          } catch {
-            console.log("error",file)
-          }
+          client.queue("add_entity", entityData)
         }
+
+
 
         // Constantly send this packet to the client to tell it the center position for chunks. The client should then request these
         // missing chunks from the us if it's missing any within the radius. `radius` is in blocks.
+        // TODO: Make better
         loop = setInterval(() => {
           console.log("Sending network chonk")
           client.write('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
@@ -124,42 +134,50 @@ server.on('connect', client => {
       }
     })
 
-    //client.on('subchunk_request', (data) => {
-    //  // Send all the chunks, idc how many u want, client
-    //  console.log("sending chunk data")
-//
-    //  client.queue("network_chunk_publisher_update", {"coordinates":{"x":Math.round(clientData.position.x),"y":Math.round(clientData.position.x),"z":Math.round(clientData.position.x)},"radius":64,"saved_chunks":[]})
-    //  
-    //  for (var i = 0; i < worldChunks.length; i++) {
-    //    client.queue("level_chunk", worldChunks[i])
-    //  }
-    //})
-
+    // Handle client subchunk requests
     client.on("subchunk_request", (data) => {
-      console.log("subchunk request:", data.origin)
+      try {
+        // Generate subchunk file path and parse its JSON
+        const subchunkFile = JSON.parse(fs.readFileSync("./chunkdata/subchunk_" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
 
-      for (const file of fs.readdirSync(`./subchunks`)) {
-        // I'm sorry HDD...
-        const chunkData = JSON.parse(fs.readFileSync(`./subchunks/` + file))
-        // console.log('Sending chunk', buffer)
-        //client.sendBuffer(buffer)
+        // Create skeleton response
+        let subchunkData = {
+          cache_enabled: subchunkFile.cache_enabled,
+          dimension: subchunkFile.dimension,
+          origin: subchunkFile.origin,
+          entries: []
+        }
 
-        //console.log(file)
+        // For every requested "subsubchunk", add it to the response if it exists
+        for (const request of data.requests) {
+          const subSubchunkKey = String(request.dx) + "_" + String(request.dy) + "_" + String(request.dz)
 
-        //console.log(chunkData.origin)
+          if (Object.keys(subchunkFile.entries).includes(subSubchunkKey)) {
+            subchunkData.entries.push(subchunkFile.entries[subSubchunkKey])
+          } else {
+            console.warn(colors.yellow("WARN: Client requested subsubchunk", subSubchunkKey, "but it was not found, falling back to sending all existing subsubchunks!"))
 
-        if (chunkData.origin.x === data.origin.x && chunkData.origin.y === data.origin.y && chunkData.origin.z === data.origin.z) {
-          console.log("\n\n\nSending",chunkData.origin,"\n\n\n")
-          client.queue("subchunk", chunkData)
+            subchunkData.entries = []
+
+            for (const subchunkEntry in subchunkFile.entries) {
+              subchunkData.entries.push(subchunkFile.entries[subchunkEntry])
+            }
+
+            break;
+          }
+        }
+
+        // Send the response
+        client.queue("subchunk", subchunkData)
+      } catch (e) {
+        // If there is an error, send warning to console
+        if (e.code === 'ENOENT' && e.syscall === 'open') {
+          console.warn(colors.yellow("WARN: Client requested subchunk", e.path, "but it was not found, ignoring request"))
         }
       }
     })
 
-    //client.on('move_player', (data) => {
-    //  // What is anticheat lol
-    //  client.queue("move_player", data)
-    //})
-
+    // For debugging
     client.on('inventory_transaction', (data) => {
       console.log("inventory",data)
     })
@@ -170,12 +188,6 @@ server.on('connect', client => {
         request_time: packet.request_time,
         response_time: BigInt(Date.now())
       })
-    })
-
-    //client.on('resource_pack_client_response')
-    // We can listen for text packets. See proto.yml for documentation.
-    client.on('text', (packet) => {
-      console.log('Client got text packet', packet)
     })
   })
 })
