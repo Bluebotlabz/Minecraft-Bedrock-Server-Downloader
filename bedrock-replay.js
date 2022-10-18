@@ -1,4 +1,4 @@
-//process.env.DEBUG = 'minecraft-protocol' // packet logging
+process.env.DEBUG = 'minecraft-protocol' // packet logging
 
 const fs = require('fs');
 const bedrock = require('bedrock-protocol');

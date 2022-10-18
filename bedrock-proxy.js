@@ -57,8 +57,15 @@ function paramsToString(data) {
 }
 
 function convertPacketToJson(name, params, isClientBound) {
-  // Define constants
-  const specialPackets = ["level_chunk", "subchunk", "add_entity", "add_painting", "npc_dialogue", "npc_request"]
+  // Define special packets and their folder names
+  const specialPackets = {
+    "level_chunk": null, // Managed seperately
+    "subchunk": null, // Managed seperately
+    "add_entity": "entities",
+    "add_painting": "paingings",
+    "npc_dialogue": "npc_dialogue",
+    "npc_request": "npc_request"
+  }
 
   // Pre-convert params to JSON
   const stringParams = JSON.stringify(params, (key, value) => {
@@ -73,7 +80,7 @@ function convertPacketToJson(name, params, isClientBound) {
 
   // Only save clientbound data
   if (isClientBound) {
-    if (!specialPackets.includes(name)) { // Generic packets
+    if (!Object.keys(specialPackets).includes(name)) { // Generic packets
       try {
         fs.mkdirSync(proxyPacketOutputFolder + "/data/")
       } catch {}
@@ -117,6 +124,9 @@ function convertPacketToJson(name, params, isClientBound) {
       fs.writeFileSync(subchunkFilename, JSON.stringify(subchunkData))
     
     } else { // "Special" numbered packets
+      // "Normalize" name
+      name = specialPackets[name]
+
       try {
         var folderContents = fs.readdirSync(proxyPacketOutputFolder + name + "/")
 
