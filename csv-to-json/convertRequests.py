@@ -142,3 +142,5 @@ splitRequestsToJSON("./networkData.csv", "./paintings/", ["clientbound"], ["add_
 
 print("Converting npc dialogue packets")
 splitRequestsToJSON("./networkData.csv", "./npc_dialogue/", ["clientbound"], ["npc_dialogue"])
+
+print("\n\nCSV Packets Converted To JSON Successfully")

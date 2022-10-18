@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const bedrock = require('bedrock-protocol');
+const colors = require('colors/safe');
 
 const get = (packetName) => {
   return require(`./data/${packetName}.json`);
@@ -17,7 +18,7 @@ const server = bedrock.createServer({
 console.log("Loading files...")
 const respawnPacket = get('respawn')
 
-console.log("Server ready.");
+console.log(colors.green("Server ready."));
 
 
 
@@ -153,7 +154,15 @@ server.on('connect', client => {
           if (Object.keys(subchunkFile.entries).includes(subSubchunkKey)) {
             subchunkData.entries.push(subchunkFile.entries[subSubchunkKey])
           } else {
-            console.warn("WARN: Client requested subsubchunk", subSubchunkKey, "but it was not found!")
+            console.warn(colors.yellow("WARN: Client requested subsubchunk", subSubchunkKey, "but it was not found, falling back to sending all existing subsubchunks!"))
+
+            subchunkData.entries = []
+
+            for (const subchunkEntry in subchunkFile.entries) {
+              subchunkData.entries.push(subchunkFile.entries[subchunkEntry])
+            }
+
+            break;
           }
         }
 
@@ -162,7 +171,7 @@ server.on('connect', client => {
       } catch (e) {
         // If there is an error, send warning to console
         if (e.code === 'ENOENT' && e.syscall === 'open') {
-          console.warn("WARN: Client requested subchunk", e.path, "but it was not found, ignoring request")
+          console.warn(colors.yellow("WARN: Client requested subchunk", e.path, "but it was not found, ignoring request"))
         }
       }
     })
