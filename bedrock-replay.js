@@ -47,7 +47,7 @@ server.on('connect', client => {
 
 
         // Send the "initialization packets"
-        client.queue('player_list', get('player_list'))
+        //client.queue('player_list', get('player_list'))
         client.queue('start_game', get('start_game'))
 
         client.queue('item_component', { entries: [] })
@@ -59,7 +59,7 @@ server.on('connect', client => {
         client.queue('update_adventure_settings', get('update_adventure_settings'))
         client.queue('update_abilities', get('update_abilities'))
         client.queue('game_rules_changed', get('game_rules_changed'))
-        client.queue('player_list', get('player_list'))
+        //client.queue('player_list', get('player_list'))
         client.queue('biome_definition_list', get('biome_definition_list'))
         client.queue('player_fog', get('player_fog'))
         client.queue('available_entity_identifiers', get('available_entity_identifiers'))
@@ -78,7 +78,7 @@ server.on('connect', client => {
         //client.queue('available_commands', get('available_commands'))
 
         //client.queue('set_entity_data', get('set_entity_data'))
-        client.queue('entity_evemt', {"runtime_entity_id":"1","event_id":"player_check_treasure_hunter_achievement","data":0})
+        client.queue('entity_event', {"runtime_entity_id":"1","event_id":"player_check_treasure_hunter_achievement","data":0})
         client.queue('set_entity_data', {"runtime_entity_id":"1","metadata":[{"key":"flags","type":"long","value":{"onfire":false,"sneaking":false,"riding":false,"sprinting":false,"action":false,"invisible":false,"tempted":false,"inlove":false,"saddled":false,"powered":false,"ignited":false,"baby":false,"converting":false,"critical":false,"can_show_nametag":false,"always_show_nametag":false,"no_ai":false,"silent":false,"wallclimbing":false,"can_climb":true,"swimmer":false,"can_fly":false,"walker":false,"resting":false,"sitting":false,"angry":false,"interested":false,"charged":false,"tamed":false,"orphaned":false,"leashed":false,"sheared":false,"gliding":false,"elder":false,"moving":false,"breathing":true,"chested":false,"stackable":false,"showbase":false,"rearing":false,"vibrating":false,"idling":false,"evoker_spell":false,"charge_attack":false,"wasd_controlled":false,"can_power_jump":false,"linger":false,"has_collision":true,"affected_by_gravity":true,"fire_immune":false,"dancing":false,"enchanted":false,"show_trident_rope":false,"container_private":false,"transforming":false,"spin_attack":false,"swimming":false,"bribed":false,"pregnant":false,"laying_egg":false,"rider_can_pick":false,"transition_sitting":false,"eating":false,"laying_down":false}}],"tick":"0"})
         client.queue('set_health', get('set_health'))
 
@@ -152,6 +152,8 @@ server.on('connect', client => {
 
           if (Object.keys(subchunkFile.entries).includes(subSubchunkKey)) {
             subchunkData.entries.push(subchunkFile.entries[subSubchunkKey])
+          } else {
+            console.warn("WARN: Client requested subsubchunk", subSubchunkKey, "but it was not found!")
           }
         }
 
