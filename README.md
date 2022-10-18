@@ -42,6 +42,7 @@ npm start
 ## TODO
 - [x] Replace subchunk packets with custom subchunk format
 - [x] Integrate packet conversion directly into proxy
+- [ ] Optimize more packet data types (paintings, entities)
 - [ ] Fix NPCs
 - [ ] Fix inventory packets
 - [ ] Fix interaction packets
