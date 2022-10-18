@@ -133,9 +133,8 @@ blob_cache/
 optimizedSubchunks/
 
 # Chunk data
-chunks/
+chunkdata/
 data/
-subchunks/
 entities/
 npc_dialogue/
 paintings/

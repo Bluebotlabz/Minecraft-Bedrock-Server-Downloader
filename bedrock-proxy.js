@@ -82,26 +82,28 @@ function convertPacketToJson(name, params, isClientBound) {
 
     } else if (name === "level_chunk") { // Chunk packets
       try {
-        fs.mkdirSync(proxyPacketOutputFolder + "/chunks/")
+        fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
       } catch {}
 
       try {
-        let chunks = JSON.parse(fs.readFileSync(proxyPacketOutputFolder + "chunks/chunks.json"))
+        let chunks = JSON.parse(fs.readFileSync(proxyPacketOutputFolder + "chunkdata/chunks.json"))
         chunks.push(params)
 
-        fs.writeFileSync(proxyPacketOutputFolder + "/chunks/chunks.json", JSON.stringify(chunks))
+        fs.writeFileSync(proxyPacketOutputFolder + "/chunkdata/chunks.json", JSON.stringify(chunks))
       } catch {
         let chunks = [params]
-        fs.writeFileSync(proxyPacketOutputFolder + "/chunks/chunks.json", JSON.stringify(chunks))
+        fs.writeFileSync(proxyPacketOutputFolder + "/chunkdata/chunks.json", JSON.stringify(chunks))
       }
     
     } else if (name === "subchunk") { // Subchunk packets
       try {
-        fs.mkdirSync(proxyPacketOutputFolder + "/subchunks/")
+        fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
       } catch {}
 
+      const subchunkFilename = proxyPacketOutputFolder + "/chunkdata/subchunk_" + params.origin.x.toString() + "_" + params.origin.y.toString() + "_" + params.origin.z.toString() + ".json"
+
       try {
-        var subchunkData = JSON.parse(fs.readFileSync(proxyPacketOutputFolder + "/subchunks/" + params.origin.x.toString() + "_" + params.origin.y.toString() + "_" + params.origin.z.toString() + ".json"))
+        var subchunkData = JSON.parse(fs.readFileSync(subchunkFilename))
       } catch {
         var subchunkData = Object.assign({}, params)
 
@@ -112,7 +114,7 @@ function convertPacketToJson(name, params, isClientBound) {
         subchunkData.entries[subchunkEntry.dx.toString() + "_" + subchunkEntry.dy.toString() + "_" + subchunkEntry.dz.toString()] = subchunkEntry
       }
 
-      fs.writeFileSync(proxyPacketOutputFolder + "/subchunks/" + params.origin.x.toString() + "_" + params.origin.y.toString() + "_" + params.origin.z.toString() + ".json", JSON.stringify(subchunkData))
+      fs.writeFileSync(subchunkFilename, JSON.stringify(subchunkData))
     
     } else { // "Special" numbered packets
       try {

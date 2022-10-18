@@ -88,12 +88,13 @@ server.on('connect', client => {
 
 
 
+        // Send chunk publisher update
         client.queue('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
 
-        // Send all the chunks, idc how many the client wants
-        for (const file of fs.readdirSync(`./chunks`)) {
-          const chunkData = JSON.parse(fs.readFileSync(`./chunks/` + file))
-          client.queue("level_chunk", chunkData)
+        // Send all the chunks in the chunk file
+        const chunkData = JSON.parse(fs.readFileSync(`./chunkdata/chunks.json`))
+        for (const chunkPacket of chunkData) {
+          client.queue("level_chunk", chunkPacket)
         }
 
         // Send all paintings
@@ -137,7 +138,7 @@ server.on('connect', client => {
     client.on("subchunk_request", (data) => {
       try {
         // Generate subchunk file path and parse its JSON
-        const subchunkFile = JSON.parse(fs.readFileSync("./subchunks/" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
+        const subchunkFile = JSON.parse(fs.readFileSync("./chunkdata/subchunk_" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
 
         // Create skeleton response
         let subchunkData = {
