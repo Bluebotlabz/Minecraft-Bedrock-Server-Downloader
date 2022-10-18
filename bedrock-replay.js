@@ -3,6 +3,7 @@ process.env.DEBUG = 'minecraft-protocol' // packet logging
 const fs = require('fs');
 const bedrock = require('bedrock-protocol');
 const colors = require('colors/safe');
+const { exit } = require('process');
 
 const get = (packetName) => {
   return require(`./data/${packetName}.json`);
@@ -174,6 +175,24 @@ server.on('connect', client => {
         if (e.code === 'ENOENT' && e.syscall === 'open') {
           console.warn(colors.yellow("WARN: Client requested subchunk", e.path, "but it was not found, ignoring request"))
         }
+      }
+    })
+
+    // Commands
+    client.on('command_request', (data) => {
+      commandData = data.command.split(' ')
+
+      try {
+        switch (commandData[0]) {
+          case "/stop": // Stops the server
+            client.disconnect("The Server Has Stopped")
+            client.close()
+            exit()
+          case "/rawpacket": // Sends the client the specified packet with data
+            client.queue(commandData[1], JSON.parse(commandData.slice(2, commandData.length).join(' ')))
+        }
+      } catch (e) {
+        console.error(e)
       }
     })
 
