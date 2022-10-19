@@ -99,24 +99,22 @@ server.on('connect', client => {
         }
 
         // Send all paintings
-        for (const file of fs.readdirSync(`./paintings`)) {
-          const paintingData = JSON.parse(fs.readFileSync(`./paintings/` + file))
-          client.queue("add_painting", paintingData)
+        const paintingData = JSON.parse(fs.readFileSync(`./data/paintings.json`))
+        for (const painting in paintingData) {
+          client.queue("add_painting", paintingData[painting])
         }
 
         // Send all the entities
-        for (const file of fs.readdirSync(`./entities`)) {
-          const entityData = JSON.parse(fs.readFileSync(`./entities/` + file), (key, value) => {
-            if (key == "_value") {
-              return null
-            } else {
-              return value
-            }
-          })
-
-          client.queue("add_entity", entityData)
+        const entityData = JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
+          if (key == "_value") {
+            return null
+          } else {
+            return value
+          }
+        })
+        for (const entity in entityData) {
+          client.queue("add_entity", entityData[entity])
         }
-
 
 
         // Constantly send this packet to the client to tell it the center position for chunks. The client should then request these
@@ -200,7 +198,8 @@ server.on('connect', client => {
 
     // For debugging
     client.on('inventory_transaction', (data) => {
-      console.log("inventory",data)
+      console.log("inventory",data.transaction.transaction_type)
+      console.log("inventory",data.transaction.transaction_data)
     })
 
     // Respond to tick synchronization packets

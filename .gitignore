@@ -135,8 +135,6 @@ optimizedSubchunks/
 # Chunk data
 chunkdata/
 data/
-entities/
 npc_dialogue/
-paintings/
 *.csv
 *.zip

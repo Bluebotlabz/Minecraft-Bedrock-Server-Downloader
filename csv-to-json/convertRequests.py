@@ -23,6 +23,34 @@ def chunkDumper(csvFile, outputDir):
             # Write file
             optimizedChunkFile.write(json.dumps(optimizedChunkData))
 
+def entityDumper(csvFile, packetIndex, packetName, outputFile):
+    with open(csvFile) as file:
+        for line in file:
+            line = line.split(",")
+            if (line[1] == packetName):
+                packetData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+
+                try:
+                    with open(outputFile, 'r+') as file:
+                        savedData = json.load(file)
+
+                        savedData[packetData[packetIndex]] = packetData
+                        
+                        # Go to start of file and remove all contents:
+                        file.seek(0)
+                        file.truncate(0)
+
+                        # Overwrite file
+                        file.write(json.dumps(savedData))
+                except:
+                    with open(outputFile, 'w') as file:
+                        savedData = {
+                            packetData[packetIndex]: packetData
+                        }
+
+                        # Write file
+                        file.write(json.dumps(savedData))
+
 def subchunkDumper(csvFile, outputDir):
     try:
         os.mkdir(outputDir)
@@ -100,7 +128,7 @@ def splitRequestsToJSON(csvFile, exportFolder, boundedness, packetType):
 
                     packetIndex += 1
 
-def dumpAttributes(csvFile, exportFolder):
+def convertPacketEntityID(csvFile, packetName, exportFolder):
     try:
         os.mkdir(exportFolder)
     except:
@@ -109,41 +137,23 @@ def dumpAttributes(csvFile, exportFolder):
     with open(csvFile) as file:
         for line in file:
             line = line.split(",")
-            if (line[1] == "update_attributes"):
+            if (line[1] == packetName):
                 attributeData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
                 attributeData["runtime_entity_id"] = "1"
 
-                with open(exportFolder + "/update_attributes.json", 'w+') as newUpdateAttributes:
+                with open(exportFolder + "/" + packetName + ".json", 'w') as newUpdateAttributes:
                     newUpdateAttributes.write(json.dumps(attributeData))
                 
-                return
-
-def dumpStartGame(csvFile, exportFolder):
-    try:
-        os.mkdir(exportFolder)
-    except:
-        pass
-
-    with open(csvFile) as file:
-        for line in file:
-            line = line.split(",")
-            if (line[1] == "start_game"):
-                startGameData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
-                startGameData["runtime_entity_id"] = "1"
-
-                with open(exportFolder + "/start_game.json", 'w+') as newStartGame:
-                    newStartGame.write(json.dumps(startGameData))
-
                 return
 
 print("Converting generic packets")
 splitRequests("./networkData.csv", "./data/", "clientbound", ["level_chunk", "subchunk", "add_entity", "add_painting", "npc_dialogue"])
 
 print("Converting player attributes")
-dumpAttributes("./networkData.csv", "./data/")
+convertPacketEntityID("./networkData.csv", "update_attributes", "./data/")
 
 print("Converting start game packet")
-dumpStartGame("./networkData.csv", "./data/")
+convertPacketEntityID("./networkData.csv", "start_game", "./data/")
 
 print("Converting chunk packets")
 chunkDumper("./networkData.csv", "./chunkdata/")
@@ -152,10 +162,10 @@ print("Converting subchunk packets")
 subchunkDumper("./networkData.csv", "./chunkdata/")
 
 print("Converting entity packets")
-splitRequestsToJSON("./networkData.csv", "./entities/", ["clientbound"], ["add_entity"])
+entityDumper("./networkData.csv", "runtime_id", "add_entity", "./data/entities.json")
 
 print("Converting painting packets")
-splitRequestsToJSON("./networkData.csv", "./paintings/", ["clientbound"], ["add_painting"])
+entityDumper("./networkData.csv", "runtime_entity_id", "add_painting", "./data/paintings.json")
 
 print("Converting npc dialogue packets")
 splitRequestsToJSON("./networkData.csv", "./npc_dialogue/", ["clientbound"], ["npc_dialogue"])
