@@ -18,21 +18,24 @@ const server = bedrock.createServer({
 })
 
 console.log("Loading files...")
-const respawnPacket = get('respawn')
-const allEntities = JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
-  if (key == "_value") {
-    return null
-  } else {
-    return value
-  }
-})
+
+const serverData = {
+  respawnPacket: get('respawn'),
+  allEntities: JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
+    if (key == "_value") {
+      return null
+    } else {
+      return value
+    }
+  })
+}
 
 console.log("Loading plugins...")
 const pluginList = fs.readdirSync("./plugins/")
 var plugins = []
 for (pluginFile of pluginList) {
   if (pluginFile.includes(".js")) { // Should be a js file
-    require("./plugins/" + pluginFile)(server)
+    require("./plugins/" + pluginFile)(server, serverData)
   }
 }
 
@@ -107,7 +110,7 @@ server.on('connect', client => {
 
 
         // Send chunk publisher update
-        client.queue('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
+        client.queue('network_chunk_publisher_update', { coordinates: { x: serverData.respawnPacket.position.x, y: 47, z: serverData.respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
 
         // Send all the chunks in the chunk file
         const chunkData = JSON.parse(fs.readFileSync(`./chunkdata/chunks.json`))
@@ -122,8 +125,8 @@ server.on('connect', client => {
         }
 
         // Send all the entities
-        for (const entity in allEntities) {
-          client.queue("add_entity", allEntities[entity])
+        for (const entity in serverData.allEntities) {
+          client.queue("add_entity", serverData.allEntities[entity])
         }
 
 
@@ -131,7 +134,7 @@ server.on('connect', client => {
         // missing chunks from the us if it's missing any within the radius. `radius` is in blocks.
         // TODO: Make better
         loop = setInterval(() => {
-          client.write('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
+          client.write('network_chunk_publisher_update', { coordinates: { x: serverData.respawnPacket.position.x, y: 47, z: serverData.respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
         }, 4500)
 
         // Wait some time to allow for the client to recieve and load all the chunks
@@ -210,7 +213,7 @@ server.on('connect', client => {
     client.on('inventory_transaction', (data) => {
       if (data.transaction.transaction_type == "item_use_on_entity") {
         // Get entity data
-        entityData = allEntities[data.transaction.transaction_data.entity_runtime_id]
+        entityData = serverData.allEntities[data.transaction.transaction_data.entity_runtime_id]
 
         // Go through entity attributes to determine type
         for (entityAttribute of entityData.metadata) {
