@@ -27,7 +27,8 @@ const serverData = {
     } else {
       return value
     }
-  })
+  }),
+  startGame: get('start_game')
 }
 
 console.log("Loading plugins...")
@@ -70,7 +71,7 @@ server.on('connect', client => {
 
         // Send the "initialization packets"
         //client.queue('player_list', get('player_list'))
-        client.queue('start_game', get('start_game'))
+        client.queue('start_game', serverData.startGame)
 
         client.queue('item_component', { entries: [] })
         client.queue('set_spawn_position', get('set_spawn_position'))
