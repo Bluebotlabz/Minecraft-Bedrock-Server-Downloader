@@ -127,9 +127,8 @@ dist
 .pnp.*
 
 # Super secret
-/resourcepack/
+resourcepack/
 LocalCache/
-blob_cache/
 optimizedSubchunks/
 
 # Chunk data
