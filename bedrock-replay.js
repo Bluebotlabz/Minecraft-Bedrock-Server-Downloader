@@ -1,4 +1,4 @@
-process.env.DEBUG = 'minecraft-protocol' // packet logging
+//process.env.DEBUG = 'minecraft-protocol' // packet logging
 
 const fs = require('fs');
 const bedrock = require('bedrock-protocol');
@@ -26,6 +26,15 @@ const allEntities = JSON.parse(fs.readFileSync(`./data/entities.json`), (key, va
     return value
   }
 })
+
+console.log("Loading plugins...")
+const pluginList = fs.readdirSync("./plugins/")
+var plugins = []
+for (pluginFile of pluginList) {
+  if (pluginFile.includes(".js")) { // Should be a js file
+    require("./plugins/" + pluginFile)(server)
+  }
+}
 
 console.log(colors.green("Server ready."));
 
@@ -122,7 +131,6 @@ server.on('connect', client => {
         // missing chunks from the us if it's missing any within the radius. `radius` is in blocks.
         // TODO: Make better
         loop = setInterval(() => {
-          console.log("Sending network chonk")
           client.write('network_chunk_publisher_update', { coordinates: { x: respawnPacket.position.x, y: 47, z: respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
         }, 4500)
 
@@ -199,7 +207,6 @@ server.on('connect', client => {
       }
     })
 
-    // For debugging
     client.on('inventory_transaction', (data) => {
       if (data.transaction.transaction_type == "item_use_on_entity") {
         // Get entity data
