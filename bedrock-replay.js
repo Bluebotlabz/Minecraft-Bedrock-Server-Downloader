@@ -19,6 +19,13 @@ const server = bedrock.createServer({
 
 console.log("Loading files...")
 const respawnPacket = get('respawn')
+const allEntities = JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
+  if (key == "_value") {
+    return null
+  } else {
+    return value
+  }
+})
 
 console.log(colors.green("Server ready."));
 
@@ -106,15 +113,8 @@ server.on('connect', client => {
         }
 
         // Send all the entities
-        const entityData = JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
-          if (key == "_value") {
-            return null
-          } else {
-            return value
-          }
-        })
-        for (const entity in entityData) {
-          client.queue("add_entity", entityData[entity])
+        for (const entity in allEntities) {
+          client.queue("add_entity", allEntities[entity])
         }
 
 
@@ -189,8 +189,10 @@ server.on('connect', client => {
             exit()
           case "/rawpacket": // Sends the client the specified packet with data
             client.queue(commandData[1], JSON.parse(commandData.slice(2, commandData.length).join(' ')))
+            break
           case "/dialogue": // Debug test dialogue
             client.queue("npc_dialogue", {"entity_id":[4294967203,341],"action_type":"open","dialogue":"","screen_name":"","npc_name":"","action_json":""})
+            break
         }
       } catch (e) {
         console.error(e)
@@ -200,23 +202,25 @@ server.on('connect', client => {
     // For debugging
     client.on('inventory_transaction', (data) => {
       if (data.transaction.transaction_type == "item_use_on_entity") {
-        const allEntities = JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
-          if (key == "_value") {
-            return null
-          } else {
-            return value
-          }
-        })
-
+        // Get entity data
         entityData = allEntities[data.transaction.transaction_data.entity_runtime_id]
 
+        // Go through entity attributes to determine type
         for (entityAttribute of entityData.metadata) {
-          if (entityAttribute.key === "npc_skin_id") {
-            const actorID = Long.fromString(entityData.unique_id)
-            const actorIDList = [actorID.getHighBitsUnsigned(), actorID.getLowBitsUnsigned()]
+          switch (entityAttribute.key) {
+            case "npc_skin_id": // Entity is an NPC
+              const actorID = Long.fromString(entityData.unique_id)
+              const actorIDList = [actorID.getHighBitsUnsigned(), actorID.getLowBitsUnsigned()]
 
-            client.queue("npc_dialogue", {"entity_id":actorIDList,"action_type":"open","dialogue":"","screen_name":"","npc_name":"","action_json":""})
+              client.queue("npc_dialogue", {"entity_id":actorIDList,"action_type":"open","dialogue":"","screen_name":"","npc_name":"","action_json":""})
+              break
+            default:
+              // If it doesn't match the switch, then "continue" the loop
+              continue
           }
+
+          // Exit for loop once switch has executed
+          break
         }
       }
     })
