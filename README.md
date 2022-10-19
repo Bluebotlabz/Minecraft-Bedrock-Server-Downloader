@@ -47,5 +47,5 @@ npm start
 - [ ] Fix inventory packets
 - [ ] Fix blockentity interaction packets
 - [ ] Fix sound packets
-- [ ] Implement basic plugin support (maybe?)
+- [x] Implement basic plugin support
 - [ ] Add redstone (maybe?)
