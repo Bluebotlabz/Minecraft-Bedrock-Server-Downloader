@@ -19,23 +19,42 @@ const server = bedrock.createServer({
 
 console.log("Loading files...")
 
-const serverData = {
+var serverData = {
   respawnPacket: get('respawn'),
-  allEntities: JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
+  startGame: get('start_game'),
+  entities: {},
+  paintings: {}
+}
+
+// Load all entities into single JS object
+const entityList = fs.readdirSync("./entities/")
+for (entityFilename of entityList) {
+  entityData = JSON.parse(fs.readFileSync(`./entities/` + entityFilename), (key, value) => {
     if (key == "_value") {
       return null
     } else {
       return value
     }
-  }),
-  startGame: get('start_game')
+  })
+
+  serverData.entities[entityData.runtime_id] = entityData
 }
 
+// Load all paintings into single JS object
+const paintingList = fs.readdirSync("./paintings/")
+for (paintingFilename of paintingList) {
+  paintingData = JSON.parse(fs.readFileSync(`./paintings/` + paintingFilename))
+
+  serverData.paintings[paintingData.runtime_entity_id] = paintingData
+}
+
+// Load (execute) plugins
 console.log("Loading plugins...")
 const pluginList = fs.readdirSync("./plugins/")
 var plugins = []
 for (pluginFile of pluginList) {
   if (pluginFile.includes(".js")) { // Should be a js file
+    // Execute the plugin (and also give it required data)
     require("./plugins/" + pluginFile)(server, serverData)
   }
 }
@@ -120,14 +139,14 @@ server.on('connect', client => {
         }
 
         // Send all paintings
-        const paintingData = JSON.parse(fs.readFileSync(`./data/paintings.json`))
-        for (const painting in paintingData) {
-          client.queue("add_painting", paintingData[painting])
+        // Send all the entities
+        for (const painting in serverData.paintings) {
+          client.queue("add_painting", serverData.paintings[painting])
         }
 
         // Send all the entities
-        for (const entity in serverData.allEntities) {
-          client.queue("add_entity", serverData.allEntities[entity])
+        for (const entity in serverData.entities) {
+          client.queue("add_entity", serverData.entities[entity])
         }
 
 
@@ -214,7 +233,7 @@ server.on('connect', client => {
     client.on('inventory_transaction', (data) => {
       if (data.transaction.transaction_type == "item_use_on_entity") {
         // Get entity data
-        entityData = serverData.allEntities[data.transaction.transaction_data.entity_runtime_id]
+        entityData = serverData.entities[data.transaction.transaction_data.entity_runtime_id]
 
         // Go through entity attributes to determine type
         for (entityAttribute of entityData.metadata) {

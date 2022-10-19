@@ -131,9 +131,11 @@ resourcepack/
 LocalCache/
 optimizedSubchunks/
 
-# Chunk data
+# Packet data
 chunkdata/
 data/
+entities/
+paintings/
 npc_dialogue/
 *.csv
 *.zip

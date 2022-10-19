@@ -62,7 +62,7 @@ function convertPacketToJson(name, params, isClientBound) {
     "level_chunk": null, // Managed seperately
     "subchunk": null, // Managed seperately
     "add_entity": "entities",
-    "add_painting": "paingings",
+    "add_painting": "paintings",
     "npc_dialogue": "npc_dialogue",
     "npc_request": "npc_request"
   }
@@ -124,31 +124,21 @@ function convertPacketToJson(name, params, isClientBound) {
       fs.writeFileSync(subchunkFilename, JSON.stringify(subchunkData))
     
     } else if (name === "add_entity" || name === "add_painting") {
+      // "Normalize" name
+      name = specialPackets[name]
+
       try {
-        var entityData = JSON.parse(fs.readFileSync(proxyPacketOutputFolder + "/data/entities.json"))
-      } catch {
-        var entityData = {}
-      }
+        fs.mkdirSync(proxyPacketOutputFolder + "/" + name + "/")
+      } catch {}
 
-      if (name === "add_entity") {
-        var entityFilename = "entities.json"
-        entityData[params.runtime_id] = params
+      // Get index
+      if (name === "entities") {
+        var fileIndex = params.runtime_id
       } else {
-        var entityFilename = "paintings.json"
-        entityData[params.runtime_entity_id] = params
+        var fileIndex = params.runtime_entity_id
       }
 
-      let entityDataString = JSON.stringify(entityData, (key, value) => {
-        if (key == "_value") {
-          return null
-        } else if (typeof value == 'bigint') {
-          return value.toString()
-        } else {
-          return value
-        }
-      })
-
-      fs.writeFileSync(proxyPacketOutputFolder + "/data/" + entityFilename, entityDataString)
+      fs.writeFileSync(proxyPacketOutputFolder + "/" + name + "/" + name + "_" + fileIndex.toString() + ".json", stringParams)
     } else { // "Special" numbered packets
       // "Normalize" name
       name = specialPackets[name]

@@ -23,33 +23,21 @@ def chunkDumper(csvFile, outputDir):
             # Write file
             optimizedChunkFile.write(json.dumps(optimizedChunkData))
 
-def entityDumper(csvFile, packetIndex, packetName, outputFile):
+def entityDumper(csvFile, packetIndex, packetName, outputFilename, outputDir):
+    try:
+        os.mkdir(outputDir)
+    except:
+        pass
+
     with open(csvFile) as file:
         for line in file:
             line = line.split(",")
             if (line[1] == packetName):
                 packetData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+                entityFilepath = outputDir + "/" + outputFilename + "_" + packetData[packetIndex] + ".json"
 
-                try:
-                    with open(outputFile, 'r+') as file:
-                        savedData = json.load(file)
-
-                        savedData[packetData[packetIndex]] = packetData
-                        
-                        # Go to start of file and remove all contents:
-                        file.seek(0)
-                        file.truncate(0)
-
-                        # Overwrite file
-                        file.write(json.dumps(savedData))
-                except:
-                    with open(outputFile, 'w') as file:
-                        savedData = {
-                            packetData[packetIndex]: packetData
-                        }
-
-                        # Write file
-                        file.write(json.dumps(savedData))
+                with open(entityFilepath, 'w') as entityFile:
+                    entityFile.write(json.dumps(packetData))
 
 def subchunkDumper(csvFile, outputDir):
     try:
@@ -162,10 +150,10 @@ print("Converting subchunk packets")
 subchunkDumper("./networkData.csv", "./chunkdata/")
 
 print("Converting entity packets")
-entityDumper("./networkData.csv", "runtime_id", "add_entity", "./data/entities.json")
+entityDumper("./networkData.csv", "runtime_id", "add_entity", "entity", "./entities/")
 
 print("Converting painting packets")
-entityDumper("./networkData.csv", "runtime_entity_id", "add_painting", "./data/paintings.json")
+entityDumper("./networkData.csv", "runtime_entity_id", "add_painting", "painting", "./paintings/")
 
 print("Converting npc dialogue packets")
 splitRequestsToJSON("./networkData.csv", "./npc_dialogue/", ["clientbound"], ["npc_dialogue"])
