@@ -4,6 +4,7 @@ const fs = require('fs');
 const bedrock = require('bedrock-protocol');
 const colors = require('colors/safe');
 const { exit } = require('process');
+const Long = require('long');
 
 const get = (packetName) => {
   return require(`./data/${packetName}.json`);
@@ -198,8 +199,26 @@ server.on('connect', client => {
 
     // For debugging
     client.on('inventory_transaction', (data) => {
-      console.log("inventory",data.transaction.transaction_type)
-      console.log("inventory",data.transaction.transaction_data)
+      if (data.transaction.transaction_type == "item_use_on_entity") {
+        const allEntities = JSON.parse(fs.readFileSync(`./data/entities.json`), (key, value) => {
+          if (key == "_value") {
+            return null
+          } else {
+            return value
+          }
+        })
+
+        entityData = allEntities[data.transaction.transaction_data.entity_runtime_id]
+
+        for (entityAttribute of entityData.metadata) {
+          if (entityAttribute.key === "npc_skin_id") {
+            const actorID = Long.fromString(entityData.unique_id)
+            const actorIDList = [actorID.getHighBitsUnsigned(), actorID.getLowBitsUnsigned()]
+
+            client.queue("npc_dialogue", {"entity_id":actorIDList,"action_type":"open","dialogue":"","screen_name":"","npc_name":"","action_json":""})
+          }
+        }
+      }
     })
 
     // Respond to tick synchronization packets
