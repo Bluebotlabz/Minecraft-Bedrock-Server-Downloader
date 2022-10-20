@@ -57,7 +57,7 @@ serverData.chunks = JSON.parse(fs.readFileSync("./chunkdata/chunks.json"))
 const subchunkList = fs.readdirSync("./chunkdata/")
 for (subchunk of subchunkList) {
   if (subchunk.includes("subchunk_")) {
-    serverData.subchunks[ subchunk.replace("subchunk_", '').replace(".json", '') ] = JSON.parse(fs.readFileSync("./chunkdata/" + subchunk))
+    serverData.subchunks[ subchunk.substring(9, subchunk.length-5) ] = JSON.parse(fs.readFileSync("./chunkdata/" + subchunk))
   }
 }
 

@@ -146,7 +146,8 @@ function convertPacketToJson(name, params, isClientBound) {
       try {
         var folderContents = fs.readdirSync(proxyPacketOutputFolder + name + "/")
 
-        var packetIndex = folderContents[folderContents.length-1].replace(".json", '').replace(name + '-', '')
+        var packetIndex = folderContents[folderContents.length-1]
+        packetIndex = packetIndex.substring(0, packetIndex.length-5).substring(name.length+1)
         packetIndex = Number(packetIndex)
       } catch {
         fs.mkdirSync(proxyPacketOutputFolder + name + "/")
@@ -155,7 +156,7 @@ function convertPacketToJson(name, params, isClientBound) {
 
       packetIndex++
 
-      fs.writeFileSync(proxyPacketOutputFolder + "/" + name + "/" + name + "-" + packetIndex.toString() + ".json", stringParams)
+      fs.writeFileSync(proxyPacketOutputFolder + "/" + name + "/" + name + "_" + packetIndex.toString() + ".json", stringParams)
     }
   }
 }
