@@ -126,10 +126,10 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Super secret
 resourcepack/
 LocalCache/
 optimizedSubchunks/
+plugins/
 
 # Packet data
 chunkdata/

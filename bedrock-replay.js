@@ -64,7 +64,6 @@ for (subchunk of subchunkList) {
 // Load (execute) plugins
 console.log("Loading plugins...")
 const pluginList = fs.readdirSync("./plugins/")
-var plugins = []
 for (pluginFile of pluginList) {
   if (pluginFile.includes(".js")) { // Should be a js file
     // Execute the plugin (and also give it required data)
