@@ -23,7 +23,9 @@ var serverData = {
   respawnPacket: get('respawn'),
   startGame: get('start_game'),
   entities: {},
-  paintings: {}
+  paintings: {},
+  chunks: [],
+  subchunks: {}
 }
 
 // Load all entities into single JS object
@@ -46,6 +48,17 @@ for (paintingFilename of paintingList) {
   paintingData = JSON.parse(fs.readFileSync(`./paintings/` + paintingFilename))
 
   serverData.paintings[paintingData.runtime_entity_id] = paintingData
+}
+
+// Load chunk data
+serverData.chunks = JSON.parse(fs.readFileSync("./chunkdata/chunks.json"))
+
+// Load subchunk data
+const subchunkList = fs.readdirSync("./chunkdata/")
+for (subchunk of subchunkList) {
+  if (subchunk.includes("subchunk_")) {
+    serverData.subchunks[ subchunk.replace("subchunk_", '').replace(".json", '') ] = JSON.parse(fs.readFileSync("./chunkdata/" + subchunk))
+  }
 }
 
 // Load (execute) plugins
@@ -167,15 +180,17 @@ server.on('connect', client => {
 
     // Handle client subchunk requests
     client.on("subchunk_request", (data) => {
-      try {
+      const subchunkKey = String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z)
+
+      if (Object.keys(serverData.subchunks).includes(subchunkKey)) {
         // Generate subchunk file path and parse its JSON
-        const subchunkFile = JSON.parse(fs.readFileSync("./chunkdata/subchunk_" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
+        const subchunkData = serverData.subchunks[subchunkKey] //JSON.parse(fs.readFileSync("./chunkdata/subchunk_" + String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z) + ".json"))
 
         // Create skeleton response
-        let subchunkData = {
-          cache_enabled: subchunkFile.cache_enabled,
-          dimension: subchunkFile.dimension,
-          origin: subchunkFile.origin,
+        let subchunkPacketData = {
+          cache_enabled: subchunkData.cache_enabled,
+          dimension: subchunkData.dimension,
+          origin: subchunkData.origin,
           entries: []
         }
 
@@ -183,15 +198,15 @@ server.on('connect', client => {
         for (const request of data.requests) {
           const subSubchunkKey = String(request.dx) + "_" + String(request.dy) + "_" + String(request.dz)
 
-          if (Object.keys(subchunkFile.entries).includes(subSubchunkKey)) {
-            subchunkData.entries.push(subchunkFile.entries[subSubchunkKey])
+          if (Object.keys(subchunkData.entries).includes(subSubchunkKey)) {
+            subchunkPacketData.entries.push(subchunkData.entries[subSubchunkKey])
           } else {
             console.warn(colors.yellow("WARN: Client requested subsubchunk", subSubchunkKey, "but it was not found, falling back to sending all existing subsubchunks!"))
 
-            subchunkData.entries = []
+            subchunkPacketData.entries = []
 
-            for (const subchunkEntry in subchunkFile.entries) {
-              subchunkData.entries.push(subchunkFile.entries[subchunkEntry])
+            for (const subchunkEntry in subchunkData.entries) {
+              subchunkPacketData.entries.push(subchunkData.entries[subchunkEntry])
             }
 
             break;
@@ -199,12 +214,9 @@ server.on('connect', client => {
         }
 
         // Send the response
-        client.queue("subchunk", subchunkData)
-      } catch (e) {
-        // If there is an error, send warning to console
-        if (e.code === 'ENOENT' && e.syscall === 'open') {
-          console.warn(colors.yellow("WARN: Client requested subchunk", e.path, "but it was not found, ignoring request"))
-        }
+        client.queue("subchunk", subchunkPacketData)
+      } else {
+        console.warn(colors.yellow("WARN: Client requested subchunk", subchunkKey, "but it was not found, ignoring request"))
       }
     })
 
