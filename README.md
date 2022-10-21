@@ -44,9 +44,6 @@ npm start
 - [x] Integrate packet conversion directly into proxy
 - [x] Optimize more packet data types (paintings, entities)
 - [x] Fix NPCs
-- [x] Implement leaderboard
-- [ ] Implement parkour minigames
-- [ ] Implement queue system
 - [ ] Fix inventory packets
 - [ ] Fix blockentity interaction packets
 - [ ] Fix sound packets
