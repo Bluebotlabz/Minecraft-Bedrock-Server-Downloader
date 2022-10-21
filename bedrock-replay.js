@@ -232,9 +232,6 @@ server.on('connect', client => {
           case "/rawpacket": // Sends the client the specified packet with data
             client.queue(commandData[1], JSON.parse(commandData.slice(2, commandData.length).join(' ')))
             break
-          case "/dialogue": // Debug test dialogue
-            client.queue("npc_dialogue", {"entity_id":[4294967203,341],"action_type":"open","dialogue":"","screen_name":"","npc_name":"","action_json":""})
-            break
         }
       } catch (e) {
         console.error(e)
