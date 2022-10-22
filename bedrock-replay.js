@@ -25,7 +25,8 @@ var serverData = {
   entities: {},
   paintings: {},
   chunks: [],
-  subchunks: {}
+  subchunks: {},
+  players: {}
 }
 
 // Load all entities into single JS object
@@ -84,6 +85,7 @@ server.on('connect', client => {
 
     // Log client connection
     console.log('New connection', client.connection.address)
+    serverData.players[client.profile.uuid] = {}
 
     // Send resource pack data (on join)
     client.queue("resource_packs_info", {"must_accept":true,"has_scripts":false,"force_server_packs":false,"behaviour_packs":[],"texture_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","size":[0,8544714],"content_key":"","sub_pack_name":"","content_identity":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","has_scripts":false,"rtx_enabled":false}]})
@@ -102,7 +104,13 @@ server.on('connect', client => {
 
         // Send the "initialization packets"
         //client.queue('player_list', get('player_list'))
-        client.queue('start_game', serverData.startGame)
+        serverData.players[client.profile.uuid].start_game = serverData.startGame
+        serverData.players[client.profile.uuid].runtime_entity_id = "1"
+        serverData.players[client.profile.uuid].entity_id = "-236223166499"
+        serverData.players[client.profile.uuid].start_game.runtime_entity_id = serverData.players[client.profile.uuid].runtime_entity_id
+        serverData.players[client.profile.uuid].start_game.entity_id = serverData.players[client.profile.uuid].entity_id
+
+        client.queue('start_game', serverData.players[client.profile.uuid].start_game)
 
         client.queue('item_component', { entries: [] })
         client.queue('set_spawn_position', get('set_spawn_position'))
