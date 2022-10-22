@@ -17,6 +17,7 @@ const relay = new Relay({
   }
 })
 
+// Delete output dir and recreate it
 const proxyPacketOutputFolder = "./proxyOutput/"
 try {
   fs.rmSync(proxyPacketOutputFolder, {recursive: true})
@@ -25,13 +26,14 @@ try {
   fs.mkdirSync(proxyPacketOutputFolder)
 } catch {}
 
-
+// Create logfile
 const logFileName = proxyPacketOutputFolder + "/proxyLog - " + (new Date().toLocaleString()).replaceAll('\\', '-').replaceAll('/', '-').replaceAll(':', '-') + ".log"
 
-
-async function writeLog(logData) {
+// Function used to write logfile
+function writeLog(logData) {
   try {
-    await fs.promises.appendFile(logFileName, logData.toString() + "\n");
+    //await fs.promises.appendFile(logFileName, logData.toString() + "\n");
+    fs.appendFileSync(logFileName, logData.toString() + "\n")
   } catch (error) {
     console.error(`Got an error trying to write to a file: ${error.message}`);
   }
