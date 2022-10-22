@@ -163,9 +163,12 @@ function convertPacketToJson(name, params, isClientBound) {
   }
 }
 
-var globalIgnoreRequests = ["resource_pack_chunk_data"]
-var clientIgnoreRequests = ["move_player"]
-var serverIgnoreRequests = [""]
+
+var globalLogIgnoreRequests = ["resource_pack_chunk_data"]
+var clientLogIgnoreRequests = [""]
+var serverLogIgnoreRequests = [""]
+
+
 
 relay.listen() // Tell the server to start listening.
 
@@ -179,14 +182,14 @@ relay.on('connect', player => {
 
   // Server is sending a message to the client.
   player.on('clientbound', ({ name, params }) => {
-    if (!globalIgnoreRequests.includes(name) && !clientIgnoreRequests.includes(name)) {
+    if (!globalLogIgnoreRequests.includes(name) && !clientLogIgnoreRequests.includes(name)) {
       logData = csvExcape(["clientbound", name, paramsToString(params)]);
       writeLog(logData);
 
       convertPacketToJson(name, params, true);
     }
 
-    if (!clientIgnoreRequests.includes(name)) {
+    if (!clientLogIgnoreRequests.includes(name)) {
       console.log("clientbound - " + name)
     }
 
@@ -197,7 +200,7 @@ relay.on('connect', player => {
 
   // Client is sending a message to the server
   player.on('serverbound', ({ name, params }) => {
-    if (!globalIgnoreRequests.includes(name) && !serverIgnoreRequests.includes(name)) {
+    if (!globalLogIgnoreRequests.includes(name) && !serverLogIgnoreRequests.includes(name)) {
       logData = csvExcape(["serverbound", name, paramsToString(params)]);
       writeLog(logData);
 
