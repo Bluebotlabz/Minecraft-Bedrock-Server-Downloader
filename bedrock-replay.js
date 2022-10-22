@@ -185,6 +185,17 @@ server.on('connect', client => {
       }
     })
 
+    client.on("move_player", (data) => {
+      serverData.players[client.profile.uuid].position = {
+        coordinates: data.position,
+        pitch: data.pitch,
+        yaw: data.yaw,
+        head_yaw: data.head_yaw,
+        on_ground: data.on_ground,
+        ridden_runtime_id: data.ridden_runtime_id
+      }
+    })
+
     // Handle client subchunk requests
     client.on("subchunk_request", (data) => {
       const subchunkKey = String(data.origin.x) + "_" + String(data.origin.y) + "_" + String(data.origin.z)
