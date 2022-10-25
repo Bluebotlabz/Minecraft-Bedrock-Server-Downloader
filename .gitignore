@@ -137,5 +137,6 @@ data/
 entities/
 paintings/
 npc_dialogue/
+tmp.json
 *.csv
 *.zip
