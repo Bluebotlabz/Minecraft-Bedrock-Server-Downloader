@@ -1,6 +1,6 @@
 {
   "name": "minecraft-bedrock-server-replayer",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Play on Minecraft Servers... Even When They're Offline!",
   "main": "bedrock-replay.js",
   "scripts": {
@@ -10,8 +10,7 @@
   "author": "Bluebotlabz",
   "license": "proprietary",
   "dependencies": {
-    "bedrock-protocol": "^3.20.0",
-    "bedrock-provider": "^3.0.0",
+    "bedrock-protocol": "^3.21.0",
     "colors": "^1.4.0",
     "long": "^5.2.0"
   }

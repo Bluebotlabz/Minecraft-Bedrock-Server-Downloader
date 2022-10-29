@@ -1,7 +1,10 @@
 import json
 import os
 
-
+###
+# Handles the conversion of single raw CSV file to packet data used by server
+# Also handles updating packet data from 1.19.30 to the latest version
+###
 
 def chunkDumper(csvFile, outputDir):
     try:
@@ -24,6 +27,28 @@ def chunkDumper(csvFile, outputDir):
             optimizedChunkFile.write(json.dumps(optimizedChunkData))
 
 def entityDumper(csvFile, packetIndex, packetName, outputFilename, outputDir):
+    try:
+        os.mkdir(outputDir)
+    except:
+        pass
+
+    with open(csvFile) as file:
+        for line in file:
+            line = line.split(",")
+            if (line[1] == packetName):
+                packetData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+                entityFilepath = outputDir + "/" + outputFilename + "_" + packetData[packetIndex] + ".json"
+
+                if (not "properties" in packetData.keys()):
+                    packetData["properties"] = {"ints":[],"floats":[]}
+                
+                if (not "links" in packetData.keys()):
+                    packetData["links"] = []
+
+                with open(entityFilepath, 'w') as entityFile:
+                    entityFile.write(json.dumps(packetData))
+
+def paintingDumper(csvFile, packetIndex, packetName, outputFilename, outputDir):
     try:
         os.mkdir(outputDir)
     except:
@@ -153,7 +178,7 @@ print("Converting entity packets")
 entityDumper("./networkData.csv", "runtime_id", "add_entity", "entity", "./entities/")
 
 print("Converting painting packets")
-entityDumper("./networkData.csv", "runtime_entity_id", "add_painting", "painting", "./paintings/")
+paintingDumper("./networkData.csv", "runtime_entity_id", "add_painting", "painting", "./paintings/")
 
 print("Converting npc dialogue packets")
 splitRequestsToJSON("./networkData.csv", "./npc_dialogue/", ["clientbound"], ["npc_dialogue"])

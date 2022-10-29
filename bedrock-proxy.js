@@ -2,7 +2,7 @@ const { Relay } = require('bedrock-protocol')
 const fs = require('fs');
 
 const relay = new Relay({
-  version: '1.19.30', // The version
+  version: '1.19.40', // The version
   /* host and port to listen for clients on */
   host: '0.0.0.0',
   port: 19132,
