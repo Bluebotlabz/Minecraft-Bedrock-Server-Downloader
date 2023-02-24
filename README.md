@@ -1,7 +1,7 @@
 # Minecraft-Bedrock-Server-Downloader
-Play on Minecraft Servers... Even When They're Offline!
+Play on Minecraft Servers... even when they're offline!
 
-CONTENTS:
+Contents:
 - [What is it?](#what-is-it)
 - [Installation](#installation)
 - [How does it work?](#how-does-it-work)
