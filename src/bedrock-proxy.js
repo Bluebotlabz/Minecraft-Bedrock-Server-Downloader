@@ -1,4 +1,5 @@
 const { Relay } = require('bedrock-protocol')
+const path = require('path')
 const fs = require('fs');
 
 const relay = new Relay({
@@ -6,24 +7,27 @@ const relay = new Relay({
   host: '0.0.0.0',
   port: 19132,
   destination: {
-    host: '127.0.0.1',
-    port: 30731
+    host: process.argv[2],
+    port: parseInt(process.argv[3])
   }
 })
 
-const proxyPacketOutputFolder = "./proxyOutput/"
-try {
-  fs.rmSync(proxyPacketOutputFolder, {recursive: true})
-  fs.mkdirSync(proxyPacketOutputFolder)
-} catch {}
+const fs = require('fs');
+const path = require('path');
 
-const logFileName = proxyPacketOutputFolder + "/proxyLog - " + (new Date().toLocaleString()).replaceAll('\\', '-').replaceAll('/', '-').replaceAll(':', '-') + ".log"
+const proxyPacketOutputFolder = "./proxyOutput";
+
+if (!fs.existsSync(proxyPacketOutputFolder)) {
+  fs.mkdirSync(proxyPacketOutputFolder);
+}
+
+const logFileName = path.join(proxyPacketOutputFolder, `proxyLog - ${new Date().toLocaleString().replace(/[\/\\:]/g, '-')}.log`);
 
 function writeLog(logData) {
   try {
-    fs.appendFileSync(logFileName, logData.toString() + "\n")
+    fs.appendFileSync(logFileName, `${logData}\n`);
   } catch (error) {
-    console.error(`Got an error trying to write to a file: ${error.message}`);
+    console.error(`Error while writing to file: ${error.message}`);
   }
 }
 
@@ -39,10 +43,8 @@ function csvExcape(data) {
 }
 
 function paramsToString(data) {
-  return( JSON.stringify(data, (key, value) =>
-    typeof value === 'bigint'
-        ? value.toString()
-        : value // return everything else unchanged
+  return (JSON.stringify(data, (key, value) =>
+    typeof value === 'bigint' ? value.toString() : value
   ));
 }
 
@@ -73,14 +75,12 @@ function convertPacketToJson(name, params, isClientBound) {
     if (!Object.keys(specialPackets).includes(name)) { // Generic packets
       try {
         fs.mkdirSync(proxyPacketOutputFolder + "/data/")
-      } catch {}
+      } catch { }
 
       fs.writeFileSync(proxyPacketOutputFolder + "/data/" + name + ".json", stringParams)
 
     } else if (name === "level_chunk") { // Chunk packets
-      try {
-        fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
-      } catch {}
+      fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
 
       try {
         let chunks = JSON.parse(fs.readFileSync(proxyPacketOutputFolder + "chunkdata/chunks.json"))
@@ -91,11 +91,11 @@ function convertPacketToJson(name, params, isClientBound) {
         let chunks = [params]
         fs.writeFileSync(proxyPacketOutputFolder + "/chunkdata/chunks.json", JSON.stringify(chunks))
       }
-    
+
     } else if (name === "subchunk") { // Subchunk packets
       try {
         fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
-      } catch {}
+      } catch { }
 
       const subchunkFilename = proxyPacketOutputFolder + "/chunkdata/subchunk_" + params.origin.x.toString() + "_" + params.origin.y.toString() + "_" + params.origin.z.toString() + ".json"
 
@@ -112,14 +112,14 @@ function convertPacketToJson(name, params, isClientBound) {
       }
 
       fs.writeFileSync(subchunkFilename, JSON.stringify(subchunkData))
-    
+
     } else if (name === "add_entity" || name === "add_painting") {
       // "Normalize" name
       name = specialPackets[name]
 
       try {
         fs.mkdirSync(proxyPacketOutputFolder + "/" + name + "/")
-      } catch {}
+      } catch { }
 
       // Get index
       if (name === "entities") {
@@ -136,8 +136,8 @@ function convertPacketToJson(name, params, isClientBound) {
       try {
         var folderContents = fs.readdirSync(proxyPacketOutputFolder + name + "/")
 
-        var packetIndex = folderContents[folderContents.length-1]
-        packetIndex = packetIndex.substring(0, packetIndex.length-5).substring(name.length+1)
+        var packetIndex = folderContents[folderContents.length - 1]
+        packetIndex = packetIndex.substring(0, packetIndex.length - 5).substring(name.length + 1)
         packetIndex = Number(packetIndex)
       } catch {
         fs.mkdirSync(proxyPacketOutputFolder + name + "/")
@@ -152,12 +152,11 @@ function convertPacketToJson(name, params, isClientBound) {
 }
 
 
-var globalLogIgnoreRequests = ["resource_pack_chunk_data"]
-var clientLogIgnoreRequests = [""]
-var serverLogIgnoreRequests = [""]
+let globalLogIgnoreRequests = ["resource_pack_chunk_data"] // TODO: Convert to json files?
+let clientLogIgnoreRequests = [""]
+let serverLogIgnoreRequests = [""]
 
-
-relay.listen() // Tell the server to start listening.
+relay.listen()
 
 logData = csvExcape(["receiptient", "name", "json"]);
 writeLog(logData);
@@ -192,7 +191,7 @@ relay.on('connect', player => {
 
     console.log("serverbound - " + name)
 
-    if (name === 'text') { // Intercept chat message to server and append time.
+    if (name === 'text') {
       params.message += "!";
     }
   })
