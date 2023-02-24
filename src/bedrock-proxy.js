@@ -2,37 +2,25 @@ const { Relay } = require('bedrock-protocol')
 const fs = require('fs');
 
 const relay = new Relay({
-  version: '1.19.40', // The version
-  /* host and port to listen for clients on */
+  version: '1.19.40',
   host: '0.0.0.0',
   port: 19132,
-  /* Where to send upstream packets to */
-  //destination: {
-  //  host: '40.115.98.220',
-  //  port: 30731
-  //}
   destination: {
     host: '127.0.0.1',
     port: 30731
   }
 })
 
-// Delete output dir and recreate it
 const proxyPacketOutputFolder = "./proxyOutput/"
 try {
   fs.rmSync(proxyPacketOutputFolder, {recursive: true})
-} catch {}
-try {
   fs.mkdirSync(proxyPacketOutputFolder)
 } catch {}
 
-// Create logfile
 const logFileName = proxyPacketOutputFolder + "/proxyLog - " + (new Date().toLocaleString()).replaceAll('\\', '-').replaceAll('/', '-').replaceAll(':', '-') + ".log"
 
-// Function used to write logfile
 function writeLog(logData) {
   try {
-    //await fs.promises.appendFile(logFileName, logData.toString() + "\n");
     fs.appendFileSync(logFileName, logData.toString() + "\n")
   } catch (error) {
     console.error(`Got an error trying to write to a file: ${error.message}`);
