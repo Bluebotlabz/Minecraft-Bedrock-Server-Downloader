@@ -12,8 +12,8 @@ const relay = new Relay({
   host: '0.0.0.0',
   port: 19132,
   destination: {
-    host: process.argv[3],
-    port: parseInt(process.argv[4])
+    host: process.argv[2],
+    port: parseInt(process.argv[3])
   }
 })
 
