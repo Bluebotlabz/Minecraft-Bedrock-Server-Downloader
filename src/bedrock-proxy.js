@@ -157,13 +157,12 @@ var clientLogIgnoreRequests = [""]
 var serverLogIgnoreRequests = [""]
 
 
-
 relay.listen() // Tell the server to start listening.
 
 logData = csvExcape(["receiptient", "name", "json"]);
 writeLog(logData);
 
-console.log("Ready.");
+console.log("Ready!");
 
 relay.on('connect', player => {
   console.log('New connection', player.connection.address)
@@ -180,10 +179,6 @@ relay.on('connect', player => {
     if (!clientLogIgnoreRequests.includes(name)) {
       console.log("clientbound - " + name)
     }
-
-    if (name === 'disconnect') { // Intercept kick
-      //params.message = 'Intercepted' // Change kick message to "Intercepted"
-    }
   })
 
   // Client is sending a message to the server
@@ -198,22 +193,7 @@ relay.on('connect', player => {
     console.log("serverbound - " + name)
 
     if (name === 'text') { // Intercept chat message to server and append time.
-      //params.message += `, on ${new Date().toLocaleString()}`
       params.message += "!";
     }
   })
 })
-
-//const bedrock = require('bedrock-protocol')
-//const server = bedrock.createServer({
-//  host: '0.0.0.0',       // optional. host to bind as.
-//  port: 19132,           // optional
-//  version: '1.19.30',   // optional. The server version, latest if not specified. 
-//})
-//
-//server.on('connect', client => {
-//  client.on('join', () => { // The client has joined the server.
-//    const d = new Date()  // Once client is in the server, send a colorful kick message
-//    client.disconnect(`Good ${d.getHours() < 12 ? '§emorning§r' : '§3afternoon§r'} :)\n\nMy time is ${d.toLocaleString()} !`)
-//  })
-//})
