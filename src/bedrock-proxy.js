@@ -12,9 +12,6 @@ const relay = new Relay({
   }
 })
 
-const fs = require('fs');
-const path = require('path');
-
 const proxyPacketOutputFolder = "./proxyOutput";
 
 if (!fs.existsSync(proxyPacketOutputFolder)) {
