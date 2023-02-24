@@ -2,8 +2,8 @@ const { Relay } = require('bedrock-protocol')
 const path = require('path')
 const fs = require('fs');
 
-if (process.argv.length < 2) {
-  console.error("Error! Please do 'node bedrock-proxy <target host> <target port>'")
+if (process.argv.length < 3) {
+  console.error("Error! Please do 'node bedrock-proxy <target host>'")
   process.exit(-1)
 }
 
