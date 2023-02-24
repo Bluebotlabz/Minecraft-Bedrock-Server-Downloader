@@ -20,13 +20,13 @@ npm i
 ~~~
 2. Start the proxy server
 ~~~bash
-npm proxy
+npm run proxy
 ~~~
 2a. Convert the files
 [TBA]<br/>
 3. Start the main server
 ~~~bash
-npm start
+npm run start
 ~~~
 
 ## How does it work?
@@ -49,3 +49,4 @@ npm start
 - [ ] Fix sound packets
 - [x] Implement basic plugin support
 - [ ] Add redstone (maybe?)
+- [ ] Fix code style
