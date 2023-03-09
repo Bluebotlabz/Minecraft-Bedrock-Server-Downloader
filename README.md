@@ -9,7 +9,7 @@ Contents:
 
 ## What is it?
 Originally designed to allow players to play on the Official Minecraft Mob Vote server even after it was closed, the Minecraft Bedrock Server Downloader allows any player to easily download the packets sent between a server and their client via its proxy.
-After that, these packets can then be [converted](./network-to-world/) into a JSON format which can then be used by the server to host a copy of the original server's world
+After that, these packets can then be [converted](https://github.com/Bluebotlaboratories/Minecraft-Bedrock-Server-Downloader/blob/main/csv-to-json/convertRequests.py) into a JSON format which can then be used by the server to host a copy of the original server's world
 
 ## Installation
 1. Clone the repo and install the dependencies
