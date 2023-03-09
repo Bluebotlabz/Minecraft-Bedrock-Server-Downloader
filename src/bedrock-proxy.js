@@ -1,41 +1,35 @@
 const { Relay } = require('bedrock-protocol')
+const path = require('path')
 const fs = require('fs');
 
+if (process.argv.length < 3) {
+  console.error("Error! Please do 'node bedrock-proxy <target host>'")
+  process.exit(-1)
+}
+
 const relay = new Relay({
-  version: '1.19.40', // The version
-  /* host and port to listen for clients on */
+  version: '1.19.40',
   host: '0.0.0.0',
   port: 19132,
-  /* Where to send upstream packets to */
-  //destination: {
-  //  host: '40.115.98.220',
-  //  port: 30731
-  //}
   destination: {
-    host: '127.0.0.1',
-    port: 30731
+    host: process.argv[2],
+    port: 19132
   }
 })
 
-// Delete output dir and recreate it
-const proxyPacketOutputFolder = "./proxyOutput/"
-try {
-  fs.rmSync(proxyPacketOutputFolder, {recursive: true})
-} catch {}
-try {
-  fs.mkdirSync(proxyPacketOutputFolder)
-} catch {}
+const proxyPacketOutputFolder = "./proxyOutput";
 
-// Create logfile
-const logFileName = proxyPacketOutputFolder + "/proxyLog - " + (new Date().toLocaleString()).replaceAll('\\', '-').replaceAll('/', '-').replaceAll(':', '-') + ".log"
+if (!fs.existsSync(proxyPacketOutputFolder)) {
+  fs.mkdirSync(proxyPacketOutputFolder);
+}
 
-// Function used to write logfile
+const logFileName = path.join(proxyPacketOutputFolder, `proxyLog - ${new Date().toLocaleString().replace(/[\/\\:]/g, '-')}.log`);
+
 function writeLog(logData) {
   try {
-    //await fs.promises.appendFile(logFileName, logData.toString() + "\n");
-    fs.appendFileSync(logFileName, logData.toString() + "\n")
+    fs.appendFileSync(logFileName, `${logData}\n`);
   } catch (error) {
-    console.error(`Got an error trying to write to a file: ${error.message}`);
+    console.error(`Error while writing to file: ${error.message}`);
   }
 }
 
@@ -51,10 +45,8 @@ function csvExcape(data) {
 }
 
 function paramsToString(data) {
-  return( JSON.stringify(data, (key, value) =>
-    typeof value === 'bigint'
-        ? value.toString()
-        : value // return everything else unchanged
+  return (JSON.stringify(data, (key, value) =>
+    typeof value === 'bigint' ? value.toString() : value
   ));
 }
 
@@ -85,14 +77,12 @@ function convertPacketToJson(name, params, isClientBound) {
     if (!Object.keys(specialPackets).includes(name)) { // Generic packets
       try {
         fs.mkdirSync(proxyPacketOutputFolder + "/data/")
-      } catch {}
+      } catch { }
 
       fs.writeFileSync(proxyPacketOutputFolder + "/data/" + name + ".json", stringParams)
 
     } else if (name === "level_chunk") { // Chunk packets
-      try {
-        fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
-      } catch {}
+      fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
 
       try {
         let chunks = JSON.parse(fs.readFileSync(proxyPacketOutputFolder + "chunkdata/chunks.json"))
@@ -103,11 +93,11 @@ function convertPacketToJson(name, params, isClientBound) {
         let chunks = [params]
         fs.writeFileSync(proxyPacketOutputFolder + "/chunkdata/chunks.json", JSON.stringify(chunks))
       }
-    
+
     } else if (name === "subchunk") { // Subchunk packets
       try {
         fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
-      } catch {}
+      } catch { }
 
       const subchunkFilename = proxyPacketOutputFolder + "/chunkdata/subchunk_" + params.origin.x.toString() + "_" + params.origin.y.toString() + "_" + params.origin.z.toString() + ".json"
 
@@ -124,14 +114,14 @@ function convertPacketToJson(name, params, isClientBound) {
       }
 
       fs.writeFileSync(subchunkFilename, JSON.stringify(subchunkData))
-    
+
     } else if (name === "add_entity" || name === "add_painting") {
       // "Normalize" name
       name = specialPackets[name]
 
       try {
         fs.mkdirSync(proxyPacketOutputFolder + "/" + name + "/")
-      } catch {}
+      } catch { }
 
       // Get index
       if (name === "entities") {
@@ -148,8 +138,8 @@ function convertPacketToJson(name, params, isClientBound) {
       try {
         var folderContents = fs.readdirSync(proxyPacketOutputFolder + name + "/")
 
-        var packetIndex = folderContents[folderContents.length-1]
-        packetIndex = packetIndex.substring(0, packetIndex.length-5).substring(name.length+1)
+        var packetIndex = folderContents[folderContents.length - 1]
+        packetIndex = packetIndex.substring(0, packetIndex.length - 5).substring(name.length + 1)
         packetIndex = Number(packetIndex)
       } catch {
         fs.mkdirSync(proxyPacketOutputFolder + name + "/")
@@ -164,18 +154,16 @@ function convertPacketToJson(name, params, isClientBound) {
 }
 
 
-var globalLogIgnoreRequests = ["resource_pack_chunk_data"]
-var clientLogIgnoreRequests = [""]
-var serverLogIgnoreRequests = [""]
+let globalLogIgnoreRequests = ["resource_pack_chunk_data"] // TODO: Convert to json files?
+let clientLogIgnoreRequests = [""]
+let serverLogIgnoreRequests = [""]
 
-
-
-relay.listen() // Tell the server to start listening.
+relay.listen()
 
 logData = csvExcape(["receiptient", "name", "json"]);
 writeLog(logData);
 
-console.log("Ready.");
+console.log("Ready!");
 
 relay.on('connect', player => {
   console.log('New connection', player.connection.address)
@@ -192,10 +180,6 @@ relay.on('connect', player => {
     if (!clientLogIgnoreRequests.includes(name)) {
       console.log("clientbound - " + name)
     }
-
-    if (name === 'disconnect') { // Intercept kick
-      //params.message = 'Intercepted' // Change kick message to "Intercepted"
-    }
   })
 
   // Client is sending a message to the server
@@ -209,23 +193,8 @@ relay.on('connect', player => {
 
     console.log("serverbound - " + name)
 
-    if (name === 'text') { // Intercept chat message to server and append time.
-      //params.message += `, on ${new Date().toLocaleString()}`
+    if (name === 'text') {
       params.message += "!";
     }
   })
 })
-
-//const bedrock = require('bedrock-protocol')
-//const server = bedrock.createServer({
-//  host: '0.0.0.0',       // optional. host to bind as.
-//  port: 19132,           // optional
-//  version: '1.19.30',   // optional. The server version, latest if not specified. 
-//})
-//
-//server.on('connect', client => {
-//  client.on('join', () => { // The client has joined the server.
-//    const d = new Date()  // Once client is in the server, send a colorful kick message
-//    client.disconnect(`Good ${d.getHours() < 12 ? '§emorning§r' : '§3afternoon§r'} :)\n\nMy time is ${d.toLocaleString()} !`)
-//  })
-//})

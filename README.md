@@ -1,7 +1,7 @@
 # Minecraft-Bedrock-Server-Downloader
-Play on Minecraft Servers... Even When They're Offline!
+Play on Minecraft Servers... even when they're offline!
 
-CONTENTS:
+Contents:
 - [What is it?](#what-is-it)
 - [Installation](#installation)
 - [How does it work?](#how-does-it-work)
@@ -20,13 +20,13 @@ npm i
 ~~~
 2. Start the proxy server
 ~~~bash
-npm proxy
+npm run proxy
 ~~~
 2a. Convert the files
 [TBA]<br/>
 3. Start the main server
 ~~~bash
-npm start
+npm run start
 ~~~
 
 ## How does it work?
@@ -49,3 +49,4 @@ npm start
 - [ ] Fix sound packets
 - [x] Implement basic plugin support
 - [ ] Add redstone (maybe?)
+- [ ] Fix code style
