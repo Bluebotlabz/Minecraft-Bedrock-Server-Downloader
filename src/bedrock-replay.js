@@ -1,5 +1,3 @@
-//process.env.DEBUG = 'minecraft-protocol' // packet logging
-
 const fs = require('fs');
 const bedrock = require('bedrock-protocol');
 const colors = require('colors/safe');
@@ -10,16 +8,23 @@ const get = (packetName) => {
   return require(`./data/${packetName}.json`);
 }
 
+const tryGet = (client, packetName) => {
+  try {  
+    const data = get(packetName)
+    
+    client.queue(packetName, data)
+  } catch (e) {}
+}
+
 // Create server
 const server = bedrock.createServer({
   host: '0.0.0.0',       // optional. host to bind as.
-  port: 19132,           // optional
-//  version: '1.19.40',   // optional. The server version, latest if not specified. 
+  port: 19132           // optional
 })
 
 console.log("Loading files...")
 
-var serverData = {
+let serverData = {
   respawnPacket: get('respawn'),
   startGame: get('start_game'),
   entities: {},
@@ -78,32 +83,21 @@ console.log(colors.green("Server ready."));
 
 server.on('connect', client => {
   client.on('join', () => {
-    // Debug client packets
-    //client.on('packet', (packet) => {
-    //  console.log('Got client packet', packet)
-    //})
-
     // Log client connection
     console.log('New connection', client.connection.address)
     serverData.players[client.profile.uuid] = {}
 
     // Send resource pack data (on join)
-    client.queue("resource_packs_info", {"must_accept":true,"has_scripts":false,"force_server_packs":false,"behaviour_packs":[],"texture_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","size":[0,8544714],"content_key":"","sub_pack_name":"","content_identity":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","has_scripts":false,"rtx_enabled":false}]})
+    client.queue("resource_packs_info", {"must_accept":false,"has_scripts":false,"force_server_packs":false,"behaviour_packs":[],"texture_packs":[]})
 
     // Resource pack response
     client.on('resource_pack_client_response', (data) => {
       if (data.response_status === 'have_all_packs') {
-        //client.write('network_settings', { compression_threshold: 1 })
-        // Force client to use the cached mob vote resource pack
-        client.queue("resource_pack_stack", {"must_accept":true,"behavior_packs":[],"resource_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","name":""}],"game_version":"*","experiments":[{"name":"spectator_mode","enabled":true},{"name":"data_driven_items","enabled":true}],"experiments_previously_used":true})
+        client.queue("resource_pack_stack", {"must_accept":true,"behavior_packs":[],"resource_packs":[],"game_version":"*","experiments":[],"experiments_previously_used":false})
       } else if (data.response_status === 'completed') {
-        // Client ready
-        console.log("client ready");
+        console.log("Client is ready");
 
-
-
-        // Send the "initialization packets"
-        //client.queue('player_list', get('player_list'))
+        // Send the initialization packets
         serverData.players[client.profile.uuid].start_game = serverData.startGame
         serverData.players[client.profile.uuid].runtime_entity_id = "1"
         serverData.players[client.profile.uuid].entity_id = "-236223166499"
@@ -121,7 +115,7 @@ server.on('connect', client => {
         client.queue('update_adventure_settings', get('update_adventure_settings'))
         client.queue('update_abilities', get('update_abilities'))
         client.queue('game_rules_changed', get('game_rules_changed'))
-        //client.queue('player_list', get('player_list'))
+        tryGet(client, "player_list")
         client.queue('biome_definition_list', get('biome_definition_list'))
         client.queue('player_fog', get('player_fog'))
         client.queue('available_entity_identifiers', get('available_entity_identifiers'))
@@ -132,14 +126,13 @@ server.on('connect', client => {
         client.queue('inventory_content', {"window_id":"inventory","input":[{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0}]})
         client.queue('inventory_content', {"window_id":"ui","input":[{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0}]})
 
-        //client.queue('inventory_content', get('inventory_content'))
-        //client.queue('crafting_data', get('crafting_data'))
+        tryGet(client, "available_commands")
+        tryGet(client, "crafting_data")
 
         client.queue('player_hotbar', {"selected_slot":0,"window_id":"inventory","select_slot":true})
 
-        //client.queue('available_commands', get('available_commands'))
+        client.queue('available_commands', get('available_commands'))
 
-        //client.queue('set_entity_data', get('set_entity_data'))
         client.queue('entity_event', {"runtime_entity_id":"1","event_id":"player_check_treasure_hunter_achievement","data":0})
         client.queue('set_entity_data', {"runtime_entity_id":"1","metadata":[{"key":"flags","type":"long","value":{"onfire":false,"sneaking":false,"riding":false,"sprinting":false,"action":false,"invisible":false,"tempted":false,"inlove":false,"saddled":false,"powered":false,"ignited":false,"baby":false,"converting":false,"critical":false,"can_show_nametag":false,"always_show_nametag":false,"no_ai":false,"silent":false,"wallclimbing":false,"can_climb":true,"swimmer":false,"can_fly":false,"walker":false,"resting":false,"sitting":false,"angry":false,"interested":false,"charged":false,"tamed":false,"orphaned":false,"leashed":false,"sheared":false,"gliding":false,"elder":false,"moving":false,"breathing":true,"chested":false,"stackable":false,"showbase":false,"rearing":false,"vibrating":false,"idling":false,"evoker_spell":false,"charge_attack":false,"wasd_controlled":false,"can_power_jump":false,"linger":false,"has_collision":true,"affected_by_gravity":true,"fire_immune":false,"dancing":false,"enchanted":false,"show_trident_rope":false,"container_private":false,"transforming":false,"spin_attack":false,"swimming":false,"bribed":false,"pregnant":false,"laying_egg":false,"rider_can_pick":false,"transition_sitting":false,"eating":false,"laying_down":false}}],"tick":"0","properties":{"ints":[],"floats":[]},"links":[]})
         client.queue('set_health', get('set_health'))
@@ -147,10 +140,8 @@ server.on('connect', client => {
         client.queue('chunk_radius_update', { chunk_radius: 32 })
         client.queue('respawn', get('respawn'))
 
-
-
         // Send chunk publisher update
-        client.queue('network_chunk_publisher_update', { coordinates: { x: serverData.respawnPacket.position.x, y: 47, z: serverData.respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
+        client.queue('network_chunk_publisher_update', get("network_chunk_publisher_update"))
 
         // Send all the chunks in the chunk file
         const chunkData = JSON.parse(fs.readFileSync(`./chunkdata/chunks.json`))
@@ -169,12 +160,10 @@ server.on('connect', client => {
           client.queue("add_entity", serverData.entities[entity])
         }
 
-
         // Constantly send this packet to the client to tell it the center position for chunks. The client should then request these
         // missing chunks from the us if it's missing any within the radius. `radius` is in blocks.
-        // TODO: Make better
         loop = setInterval(() => {
-          client.write('network_chunk_publisher_update', { coordinates: { x: serverData.respawnPacket.position.x, y: 47, z: serverData.respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
+          client.write('network_chunk_publisher_update', get("network_chunk_publisher_update"))
         }, 4500)
 
         // Wait some time to allow for the client to recieve and load all the chunks
