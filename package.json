@@ -12,6 +12,7 @@
   "dependencies": {
     "bedrock-protocol": "^3.21.0",
     "colors": "^1.4.0",
-    "long": "^5.2.0"
+    "long": "^5.2.0",
+    "sync-fetch": "^0.4.2"
   }
 }

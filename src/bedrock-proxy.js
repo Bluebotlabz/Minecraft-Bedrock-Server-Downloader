@@ -1,35 +1,99 @@
 const { Relay } = require('bedrock-protocol')
+const colors = require('colors/safe')
+const fetch = require('sync-fetch')
 const path = require('path')
 const fs = require('fs');
 
-if (process.argv.length < 3) {
-  console.error("Error! Please do 'node bedrock-proxy <target host>'")
-  process.exit(-1)
+if (process.argv.length === 2 || process.argv.length > 5) { 
+  console.error('Expected at least one argument!');
+  console.log(`
+  Usage:
+  node bedrock-proxy.js <target IP>
+  node bedrock-proxy.js <target IP> [target Port]
+
+  <target IP>   - IP of server to proxy
+  [target Port] - Port of server to proxy (optional, default: 19132)
+
+
+  Usage (with venues API to automatically determine IP/Port):
+  node bedrock-proxy.js --gathering <Venue UUID> <Auth Token>
+
+  <Venue UUID> - The UUID of the Venue, ie: d6c64a9d-509e-4c33-92be-ac7edbc1b800 (for legends event)
+  <Auth Token> - The auth token used by the API, starts with "MCToken"
+
+
+  Connecting:
+  By default listens on 0.0.0.0:19132
+  You may need to enable UWP loopback for Minecraft, for more information see:
+  https://doc.pmmp.io/en/rtfd/faq/connecting/win10localhostcantconnect.html
+  `)
+  process.exit(1);
 }
 
+let targetIP = "";
+let targetPort = 19132;
+
+if (process.argv.length < 5) { // Not using venue
+  targetIP = process.argv[2];
+  if (process.argv[3]) {
+    targetPort = process.argv[3];
+  }
+} else { // Using venues
+  /**
+   * Gatherings API Code
+   * Requires an API Token
+  */
+
+  console.log("Operating in Venue mode... Querying API...\n")
+  // Thanks to @JustTalDevelops for figuring out how this worked
+  const ipInfo = fetch("https://gatherings.franchise.minecraft-services.net/api/v1.0/venue/" + process.argv[3], {
+    method: "GET",
+    headers: {
+        "authorization": process.argv[4]
+    }
+  }).json();
+  targetIP = ipInfo.result.venue.serverIpAddress;
+  targetPort = ipInfo.result.venue.serverPort;
+}
+
+console.log("IP: ", targetIP)
+console.log("Port: ", targetPort)
+
 const relay = new Relay({
-  version: '1.19.40',
+  version: '1.19.80', // The version
+  /* host and port to listen for clients on */
   host: '0.0.0.0',
   port: 19132,
   destination: {
-    host: process.argv[2],
-    port: 19132
+    host: targetIP,
+    port: targetPort
   }
 })
 
-const proxyPacketOutputFolder = "./proxyOutput";
-
+// Delete output dir and recreate it
+const proxyPacketOutputFolder = "./proxyOutput/"
 if (!fs.existsSync(proxyPacketOutputFolder)) {
   fs.mkdirSync(proxyPacketOutputFolder);
 }
 
+// Create logfile
 const logFileName = path.join(proxyPacketOutputFolder, `proxyLog - ${new Date().toLocaleString().replace(/[\/\\:]/g, '-')}.log`);
 
+var logBuffer = [];
+var logBufferLength = 100; // Cache 50 items in ram then writeout
+
+// Function used to write logfile
 function writeLog(logData) {
-  try {
-    fs.appendFileSync(logFileName, `${logData}\n`);
-  } catch (error) {
-    console.error(`Error while writing to file: ${error.message}`);
+  logBuffer.push(logData.toString() + "\n")
+  
+  if (logBuffer.length >= logBufferLength) {
+    let writeOut = "";
+    for (let i=0; i < logBuffer.length; i++) {
+      writeOut += logBuffer[i]
+    }
+    logBuffer = []
+
+    fs.appendFileSync(logFileName, writeOut)
   }
 }
 
@@ -50,151 +114,44 @@ function paramsToString(data) {
   ));
 }
 
-function convertPacketToJson(name, params, isClientBound) {
-  // Define special packets and their folder names
-  const specialPackets = {
-    "level_chunk": null, // Managed seperately
-    "subchunk": null, // Managed seperately
-    "add_entity": "entities",
-    "add_painting": "paintings",
-    "npc_dialogue": "npc_dialogue",
-    "npc_request": "npc_request"
-  }
-
-  // Pre-convert params to JSON
-  const stringParams = JSON.stringify(params, (key, value) => {
-    if (key == "_value") {
-      return null
-    } else if (typeof value == 'bigint') {
-      return value.toString()
-    } else {
-      return value
-    }
-  })
-
-  // Only save clientbound data
-  if (isClientBound) {
-    if (!Object.keys(specialPackets).includes(name)) { // Generic packets
-      try {
-        fs.mkdirSync(proxyPacketOutputFolder + "/data/")
-      } catch { }
-
-      fs.writeFileSync(proxyPacketOutputFolder + "/data/" + name + ".json", stringParams)
-
-    } else if (name === "level_chunk") { // Chunk packets
-      fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
-
-      try {
-        let chunks = JSON.parse(fs.readFileSync(proxyPacketOutputFolder + "chunkdata/chunks.json"))
-        chunks.push(params)
-
-        fs.writeFileSync(proxyPacketOutputFolder + "/chunkdata/chunks.json", JSON.stringify(chunks))
-      } catch {
-        let chunks = [params]
-        fs.writeFileSync(proxyPacketOutputFolder + "/chunkdata/chunks.json", JSON.stringify(chunks))
-      }
-
-    } else if (name === "subchunk") { // Subchunk packets
-      try {
-        fs.mkdirSync(proxyPacketOutputFolder + "/chunkdata/")
-      } catch { }
-
-      const subchunkFilename = proxyPacketOutputFolder + "/chunkdata/subchunk_" + params.origin.x.toString() + "_" + params.origin.y.toString() + "_" + params.origin.z.toString() + ".json"
-
-      try {
-        var subchunkData = JSON.parse(fs.readFileSync(subchunkFilename))
-      } catch {
-        var subchunkData = Object.assign({}, params)
-
-        subchunkData.entries = {}
-      }
-
-      for (let subchunkEntry of params.entries) {
-        subchunkData.entries[subchunkEntry.dx.toString() + "_" + subchunkEntry.dy.toString() + "_" + subchunkEntry.dz.toString()] = subchunkEntry
-      }
-
-      fs.writeFileSync(subchunkFilename, JSON.stringify(subchunkData))
-
-    } else if (name === "add_entity" || name === "add_painting") {
-      // "Normalize" name
-      name = specialPackets[name]
-
-      try {
-        fs.mkdirSync(proxyPacketOutputFolder + "/" + name + "/")
-      } catch { }
-
-      // Get index
-      if (name === "entities") {
-        var fileIndex = params.runtime_id
-      } else {
-        var fileIndex = params.runtime_entity_id
-      }
-
-      fs.writeFileSync(proxyPacketOutputFolder + "/" + name + "/" + name + "_" + fileIndex.toString() + ".json", stringParams)
-    } else { // "Special" numbered packets
-      // "Normalize" name
-      name = specialPackets[name]
-
-      try {
-        var folderContents = fs.readdirSync(proxyPacketOutputFolder + name + "/")
-
-        var packetIndex = folderContents[folderContents.length - 1]
-        packetIndex = packetIndex.substring(0, packetIndex.length - 5).substring(name.length + 1)
-        packetIndex = Number(packetIndex)
-      } catch {
-        fs.mkdirSync(proxyPacketOutputFolder + name + "/")
-        var packetIndex = -1
-      }
-
-      packetIndex++
-
-      fs.writeFileSync(proxyPacketOutputFolder + "/" + name + "/" + name + "_" + packetIndex.toString() + ".json", stringParams)
-    }
-  }
-}
 
 
-let globalLogIgnoreRequests = ["resource_pack_chunk_data"] // TODO: Convert to json files?
-let clientLogIgnoreRequests = [""]
-let serverLogIgnoreRequests = [""]
+relay.listen() // Tell the server to start listening.
 
-relay.listen()
-
-logData = csvExcape(["receiptient", "name", "json"]);
+logData = csvExcape(["time","receiptient", "name", "json"]);
 writeLog(logData);
 
-console.log("Ready!");
+console.log(colors.green("Ready."));
 
 relay.on('connect', player => {
   console.log('New connection', player.connection.address)
 
+  // Handle write out existing buffer on disconnect
+  player.on('close', (reason) => {
+    console.log("Connectin closed!");
+    console.log("Writing out buffer");
+
+
+    let writeOut = "";
+    for (let i=0; i < logBuffer.length; i++) {
+      writeOut += logBuffer[i]
+    }
+    logBuffer = []
+
+    fs.appendFileSync(logFileName, writeOut)
+
+    console.log("Done!")
+  })
+
   // Server is sending a message to the client.
   player.on('clientbound', ({ name, params }) => {
-    if (!globalLogIgnoreRequests.includes(name) && !clientLogIgnoreRequests.includes(name)) {
-      logData = csvExcape(["clientbound", name, paramsToString(params)]);
-      writeLog(logData);
-
-      convertPacketToJson(name, params, true);
-    }
-
-    if (!clientLogIgnoreRequests.includes(name)) {
-      console.log("clientbound - " + name)
-    }
+    logData = csvExcape([Date.now().toString(), "clientbound", name, paramsToString(params)]);
+    writeLog(logData);
   })
 
   // Client is sending a message to the server
   player.on('serverbound', ({ name, params }) => {
-    if (!globalLogIgnoreRequests.includes(name) && !serverLogIgnoreRequests.includes(name)) {
-      logData = csvExcape(["serverbound", name, paramsToString(params)]);
-      writeLog(logData);
-
-      convertPacketToJson(name, params, false);
-    }
-
-    console.log("serverbound - " + name)
-
-    if (name === 'text') {
-      params.message += "!";
-    }
+    logData = csvExcape([Date.now().toString(), "serverbound", name, paramsToString(params)]);
+    writeLog(logData);
   })
 })
