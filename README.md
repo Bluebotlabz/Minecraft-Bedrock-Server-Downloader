@@ -48,5 +48,4 @@ npm run start
 - [ ] Fix blockentity interaction packets
 - [ ] Fix sound packets
 - [x] Implement basic plugin support
-- [ ] Add redstone (maybe?)
-- [ ] Fix code style
+- [x] Fix code style

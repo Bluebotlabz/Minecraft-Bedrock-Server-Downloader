@@ -122,9 +122,11 @@ logData = csvExcape(["time","receiptient", "name", "json"]);
 writeLog(logData);
 
 console.log(colors.green("Ready."));
+var startTime = 0;
 
 relay.on('connect', player => {
   console.log('New connection', player.connection.address)
+  startTime = Date.now();
 
   // Handle write out existing buffer on disconnect
   player.on('close', (reason) => {
@@ -145,13 +147,13 @@ relay.on('connect', player => {
 
   // Server is sending a message to the client.
   player.on('clientbound', ({ name, params }) => {
-    logData = csvExcape([Date.now().toString(), "clientbound", name, paramsToString(params)]);
+    logData = csvExcape([(Date.now()-startTime).toString(), "clientbound", name, paramsToString(params)]);
     writeLog(logData);
   })
 
   // Client is sending a message to the server
   player.on('serverbound', ({ name, params }) => {
-    logData = csvExcape([Date.now().toString(), "serverbound", name, paramsToString(params)]);
+    logData = csvExcape([(Date.now()-startTime).toString(), "serverbound", name, paramsToString(params)]);
     writeLog(logData);
   })
 })
