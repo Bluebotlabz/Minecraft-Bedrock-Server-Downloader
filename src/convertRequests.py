@@ -1,186 +1,105 @@
+from tqdm import tqdm
 import json
 import os
 
-###
-# Handles the conversion of single raw CSV file to packet data used by server
-# Also handles updating packet data from 1.19.30 to the latest version
-###
+fileName = "./proxyOutput/combinedLog.log"
 
-def chunkDumper(csvFile, outputDir):
-    try:
-        os.mkdir(outputDir)
-    except:
-        pass
 
-    with open(csvFile) as file:
-        optimizedChunkData = []
 
-        for line in file:
-            line = line.split(",")
-            if (line[1] == "level_chunk"):
-                chunkData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
-                
-                optimizedChunkData.append(chunkData)
+os.makedirs("./chunkdata", exist_ok=True)
+os.makedirs("./data", exist_ok=True)
+os.makedirs("./entities", exist_ok=True)
+os.makedirs("./paintings", exist_ok=True)
 
-        with open(outputDir + "/chunks.json", 'w' ) as optimizedChunkFile:
-            # Write file
-            optimizedChunkFile.write(json.dumps(optimizedChunkData))
 
-def entityDumper(csvFile, packetIndex, packetName, outputFilename, outputDir):
-    try:
-        os.mkdir(outputDir)
-    except:
-        pass
+chunkData = {}
+subchunkData = {}
+genericJSON = {}
+npcDialogue = []
+entities = {}
+paintings = {}
 
-    with open(csvFile) as file:
-        for line in file:
-            line = line.split(",")
-            if (line[1] == packetName):
-                packetData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
-                entityFilepath = outputDir + "/" + outputFilename + "_" + packetData[packetIndex] + ".json"
+with open(fileName, 'r', encoding='utf8') as file:
+    for line in tqdm(file, desc="Reading [" + fileName + "]"):
+        if (line == "time,receiptient,name,json\n"):
+            continue # Skip headers
 
-                if (not "properties" in packetData.keys()):
-                    packetData["properties"] = {"ints":[],"floats":[]}
-                
-                if (not "links" in packetData.keys()):
-                    packetData["links"] = []
+        line = line.split(",")
+        if (line[2] == "level_chunk"): # Handle chunk packet
+            chunkPacketData = json.loads(','.join(line[3:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+            chunkData[str(chunkPacketData['x']) + '_' + str(chunkPacketData['z'])] = chunkPacketData
+        elif (line[2] == "subchunk"): # Handle sub+subsub chunks
+            subchunkPacketData = json.loads(','.join(line[3:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+            stringifiedSubchunkCoords = str(subchunkPacketData["origin"]["x"]) + '_' + str(subchunkPacketData["origin"]["y"]) + '_' + str(subchunkPacketData["origin"]["z"])
 
-                with open(entityFilepath, 'w') as entityFile:
-                    entityFile.write(json.dumps(packetData))
+            if (stringifiedSubchunkCoords in list(subchunkData.keys())):
+                for entry in subchunkPacketData["entries"]:
+                    subchunkData[stringifiedSubchunkCoords]["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
+            else:
+                subchunkData[stringifiedSubchunkCoords] = subchunkPacketData
 
-def paintingDumper(csvFile, packetIndex, packetName, outputFilename, outputDir):
-    try:
-        os.mkdir(outputDir)
-    except:
-        pass
+                subchunkData[stringifiedSubchunkCoords]["entries"] = {}
 
-    with open(csvFile) as file:
-        for line in file:
-            line = line.split(",")
-            if (line[1] == packetName):
-                packetData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
-                entityFilepath = outputDir + "/" + outputFilename + "_" + packetData[packetIndex] + ".json"
+                for entry in subchunkPacketData["entries"]:
+                    subchunkData[stringifiedSubchunkCoords]["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
+        elif (line[2] == "start_game"):
+            genericJSON["start_game"] = json.loads(','.join(line[3:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+            genericJSON["start_game"]["runtime_entity_id"] = "1"
+        elif (line[2] == "update_attributes"):
+            genericJSON["update_attributes"] = json.loads(','.join(line[3:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+            genericJSON["update_attributes"]["runtime_entity_id"] = "1"
+        elif (line[2] == "add_entity"): # Handle adding entities
+            packetData = json.loads(','.join(line[3:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
 
-                with open(entityFilepath, 'w') as entityFile:
-                    entityFile.write(json.dumps(packetData))
+            if (not "properties" in packetData.keys()):
+                packetData["properties"] = {"ints":[],"floats":[]}
+            
+            if (not "links" in packetData.keys()):
+                packetData["links"] = []
 
-def subchunkDumper(csvFile, outputDir):
-    try:
-        os.mkdir(outputDir)
-    except:
-        pass
+            entities[str(packetData["runtime_id"])] = packetData
+        elif (line[2] == "add_painting"): # Handle adding entities
+            packetData = json.loads(','.join(line[3:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
 
-    with open(csvFile) as file:
-        for line in file:
-            line = line.split(",")
-            if (line[1] == "subchunk"):
-                subchunkData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+            if (not "properties" in packetData.keys()):
+                packetData["properties"] = {"ints":[],"floats":[]}
+            
+            if (not "links" in packetData.keys()):
+                packetData["links"] = []
 
-                optimizedSubchunkFileName = "subchunk_" + '_'.join(( str(subchunkData["origin"]["x"]), str(subchunkData["origin"]["y"]), str(subchunkData["origin"]["z"]) )) + ".json"
-                try:
-                    with open(outputDir + optimizedSubchunkFileName, 'r+' ) as optimizedSubchunkFile:
-                        optimizedSubchunkData = json.load(optimizedSubchunkFile)
-                        
-                        for entry in subchunkData["entries"]:
-                            optimizedSubchunkData["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
+            paintings[str(packetData["runtime_id"])] = packetData
+        elif (line[1] == "npc_dialogue" and line[0] == "clientbound"): # Handle NPC_DIALOGUE
+            npcDialogue.append(json.loads(','.join(line[2:]).replace('""', '"')[1:-2])) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+        else:
+            try:
+                genericJSON[line[2]] = json.loads(','.join(line[3:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
+            except:
+                print("ERROR CONVERTING PACKET: [" + line[2] + "]")
+# Write files
+flatChunks = []
+for chunkName in list(chunkData.keys()):
+    flatChunks.append(chunkData[chunkName])
 
-                        # Go to start of file and remove all contents:
-                        optimizedSubchunkFile.seek(0)
-                        optimizedSubchunkFile.truncate(0)
+with open('./chunkdata/chunks.json', 'w') as file:
+    file.write(json.dumps(flatChunks))
 
-                        # Overwrite file
-                        optimizedSubchunkFile.write(json.dumps(optimizedSubchunkData))
+for subchunkKey in list(subchunkData.keys()):
+    with open('./chunkdata/' + 'subchunk_' + subchunkKey + '.json', 'w') as file:
+        file.write(json.dumps(subchunkData[subchunkKey]))
 
-                except FileNotFoundError:
-                    with open(outputDir + optimizedSubchunkFileName, 'w' ) as optimizedSubchunkFile:                        
-                        optimizedSubchunkData = subchunkData.copy()
+for genericKey in list(genericJSON.keys()):
+    with open('./data/' + genericKey + '.json', 'w') as file:
+        file.write(json.dumps(genericJSON[genericKey]))
 
-                        optimizedSubchunkData["entries"] = {}
+for entityKey in list(entities.keys()):
+    with open('./entities/' + 'entity_' + entityKey + '.json', 'w') as file:
+        file.write(json.dumps(entities[entityKey]))
 
-                        for entry in subchunkData["entries"]:
-                            optimizedSubchunkData["entries"]['_'.join( (str(entry["dx"]), str(entry["dy"]), str(entry["dz"])) )] = entry
+for paintingKey in list(paintings.keys()):
+    with open('./paintings/' + 'painting_' + paintingKey + '.json', 'w') as file:
+        file.write(json.dumps(paintings[paintingKey]))
 
-                        optimizedSubchunkFile.write(json.dumps(optimizedSubchunkData))
-
-def splitRequests(csvFile, outputDir, filterBound, ignorePackets = []):
-    try:
-        os.mkdir(outputDir)
-    except:
-        pass
-
-    requestsSaved = []
-    with open(csvFile) as file:
-        for line in file:
-            line = line.split(",")
-            if (line[0] == filterBound and not line[1] in ignorePackets and not line[1] in requestsSaved):
-                with open (outputDir + line[1] + ".json", 'w+') as packetFile:
-                    parsedLine = ','.join(line[2:])
-                    parsedLine = parsedLine.replace('""', '"')
-                    parsedLine = parsedLine[1:-2] # Remove the outermost "s and trailing \n
-
-                    packetFile.write(parsedLine)
-                    requestsSaved.append(line[1])
-
-def splitRequestsToJSON(csvFile, exportFolder, boundedness, packetType):
-    try:
-        os.mkdir(exportFolder)
-    except:
-        pass
-
-    packetIndex = 0
-    with open(csvFile) as file:
-        for line in file:
-            line = line.split(",")
-            if (line[0] in boundedness and line[1] in packetType):
-                with open (exportFolder + "/" + line[1] + "-" + str(packetIndex) + ".json", 'w+') as packetFile:
-                    parsedLine = ','.join(line[2:])
-                    parsedLine = parsedLine.replace('""', '"')
-                    parsedLine = parsedLine[1:-2] # Remove the outermost "s and trailing \n
-
-                    packetFile.write(parsedLine)
-
-                    packetIndex += 1
-
-def convertPacketEntityID(csvFile, packetName, exportFolder):
-    try:
-        os.mkdir(exportFolder)
-    except:
-        pass
-
-    with open(csvFile) as file:
-        for line in file:
-            line = line.split(",")
-            if (line[1] == packetName):
-                attributeData = json.loads(','.join(line[2:]).replace('""', '"')[1:-2]) # Combine list JSON and remove the outermost "s and trailing \n (also unescapes CSV "s)
-                attributeData["runtime_entity_id"] = "1"
-
-                with open(exportFolder + "/" + packetName + ".json", 'w') as newUpdateAttributes:
-                    newUpdateAttributes.write(json.dumps(attributeData))
-                
-                return
-
-print("Converting generic packets")
-splitRequests("./networkData.csv", "./data/", "clientbound", ["level_chunk", "subchunk", "add_entity", "add_painting", "npc_dialogue"])
-
-print("Converting player attributes")
-convertPacketEntityID("./networkData.csv", "update_attributes", "./data/")
-
-print("Converting start game packet")
-convertPacketEntityID("./networkData.csv", "start_game", "./data/")
-
-print("Converting chunk packets")
-chunkDumper("./networkData.csv", "./chunkdata/")
-
-print("Converting subchunk packets")
-subchunkDumper("./networkData.csv", "./chunkdata/")
-
-print("Converting entity packets")
-entityDumper("./networkData.csv", "runtime_id", "add_entity", "entity", "./entities/")
-
-print("Converting painting packets")
-paintingDumper("./networkData.csv", "runtime_entity_id", "add_painting", "painting", "./paintings/")
-
-print("Converting npc dialogue packets")
-splitRequestsToJSON("./networkData.csv", "./npc_dialogue/", ["clientbound"], ["npc_dialogue"])
-
-print("\n\nCSV Packets Converted To JSON Successfully")
+npcIndex = 0
+for npcDialoguePacket in npcDialogue:
+    with open('./npc_dialogue/' + npcIndex + '.json', 'w') as file:
+        file.write(json.dumps(npcDialoguePacket))
