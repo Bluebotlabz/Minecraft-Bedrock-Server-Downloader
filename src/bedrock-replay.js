@@ -6,7 +6,7 @@ const colors = require('colors/safe');
 const { exit } = require('process');
 const Long = require('long');
 
-const get = (packetName) => {
+const getPacketData = (packetName) => {
   return require(`./data/${packetName}.json`);
 }
 
@@ -20,8 +20,8 @@ const server = bedrock.createServer({
 console.log("Loading files...")
 
 var serverData = {
-  respawnPacket: get('respawn'),
-  startGame: get('start_game'),
+  respawnPacket: getPacketData('respawn'),
+  startGame: getPacketData('start_game'),
   entities: {},
   paintings: {},
   chunks: [],
@@ -88,14 +88,16 @@ server.on('connect', client => {
     serverData.players[client.profile.uuid] = {}
 
     // Send resource pack data (on join)
-    client.queue("resource_packs_info", {"must_accept":true,"has_scripts":false,"force_server_packs":false,"behaviour_packs":[],"texture_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","size":[0,8544714],"content_key":"","sub_pack_name":"","content_identity":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","has_scripts":false,"rtx_enabled":false}]})
+    //client.queue("resource_packs_info", {"must_accept":true,"has_scripts":false,"force_server_packs":false,"behaviour_packs":[],"texture_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","size":[0,8544714],"content_key":"","sub_pack_name":"","content_identity":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","has_scripts":false,"rtx_enabled":false}]})
+    client.queue("resource_packs_info", getPacketData('resource_packs_info'))
 
     // Resource pack response
     client.on('resource_pack_client_response', (data) => {
       if (data.response_status === 'have_all_packs') {
         //client.write('network_settings', { compression_threshold: 1 })
         // Force client to use the cached mob vote resource pack
-        client.queue("resource_pack_stack", {"must_accept":true,"behavior_packs":[],"resource_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","name":""}],"game_version":"*","experiments":[{"name":"spectator_mode","enabled":true},{"name":"data_driven_items","enabled":true}],"experiments_previously_used":true})
+        //client.queue("resource_pack_stack", {"must_accept":true,"behavior_packs":[],"resource_packs":[{"uuid":"3bdebb27-13ad-6aa7-b726-e703c4b3fe28","version":"1.0.47","name":""}],"game_version":"*","experiments":[{"name":"spectator_mode","enabled":true},{"name":"data_driven_items","enabled":true}],"experiments_previously_used":true})
+        client.queue("resource_pack_stack", getPacketData('resource_pack_stack'))
       } else if (data.response_status === 'completed') {
         // Client ready
         console.log("client ready");
@@ -103,7 +105,7 @@ server.on('connect', client => {
 
 
         // Send the "initialization packets"
-        //client.queue('player_list', get('player_list'))
+        //client.queue('player_list', getPacketData('player_list'))
         serverData.players[client.profile.uuid].start_game = serverData.startGame
         serverData.players[client.profile.uuid].runtime_entity_id = "1"
         serverData.players[client.profile.uuid].entity_id = "-236223166499"
@@ -113,39 +115,39 @@ server.on('connect', client => {
         client.queue('start_game', serverData.players[client.profile.uuid].start_game)
 
         client.queue('item_component', { entries: [] })
-        client.queue('set_spawn_position', get('set_spawn_position'))
-        client.queue('set_time', get('set_time'))
+        client.queue('set_spawn_position', getPacketData('set_spawn_position'))
+        client.queue('set_time', getPacketData('set_time'))
         client.queue('set_difficulty', { difficulty: 1 })
         client.queue('set_commands_enabled', { enabled: true })
-        client.queue('set_time', get('set_time'))
-        client.queue('update_adventure_settings', get('update_adventure_settings'))
-        client.queue('update_abilities', get('update_abilities'))
-        client.queue('game_rules_changed', get('game_rules_changed'))
-        //client.queue('player_list', get('player_list'))
-        client.queue('biome_definition_list', get('biome_definition_list'))
-        client.queue('player_fog', get('player_fog'))
-        client.queue('available_entity_identifiers', get('available_entity_identifiers'))
-        client.queue('update_attributes', get('update_attributes'))
-        client.queue('creative_content', get('creative_content'))
+        client.queue('set_time', getPacketData('set_time'))
+        client.queue('update_adventure_settings', getPacketData('update_adventure_settings'))
+        client.queue('update_abilities', getPacketData('update_abilities'))
+        client.queue('game_rules_changed', getPacketData('game_rules_changed'))
+        //client.queue('player_list', getPacketData('player_list'))
+        client.queue('biome_definition_list', getPacketData('biome_definition_list'))
+        client.queue('player_fog', getPacketData('player_fog'))
+        client.queue('available_entity_identifiers', getPacketData('available_entity_identifiers'))
+        client.queue('update_attributes', getPacketData('update_attributes'))
+        client.queue('creative_content', getPacketData('creative_content'))
 
         client.queue('inventory_content', {"window_id":"armor","input":[{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0}]})
         client.queue('inventory_content', {"window_id":"inventory","input":[{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0}]})
         client.queue('inventory_content', {"window_id":"ui","input":[{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0},{"network_id":0}]})
 
-        //client.queue('inventory_content', get('inventory_content'))
-        //client.queue('crafting_data', get('crafting_data'))
+        //client.queue('inventory_content', getPacketData('inventory_content'))
+        //client.queue('crafting_data', getPacketData('crafting_data'))
 
         client.queue('player_hotbar', {"selected_slot":0,"window_id":"inventory","select_slot":true})
 
-        //client.queue('available_commands', get('available_commands'))
+        //client.queue('available_commands', getPacketData('available_commands'))
 
-        //client.queue('set_entity_data', get('set_entity_data'))
+        //client.queue('set_entity_data', getPacketData('set_entity_data'))
         client.queue('entity_event', {"runtime_entity_id":"1","event_id":"player_check_treasure_hunter_achievement","data":0})
         client.queue('set_entity_data', {"runtime_entity_id":"1","metadata":[{"key":"flags","type":"long","value":{"onfire":false,"sneaking":false,"riding":false,"sprinting":false,"action":false,"invisible":false,"tempted":false,"inlove":false,"saddled":false,"powered":false,"ignited":false,"baby":false,"converting":false,"critical":false,"can_show_nametag":false,"always_show_nametag":false,"no_ai":false,"silent":false,"wallclimbing":false,"can_climb":true,"swimmer":false,"can_fly":false,"walker":false,"resting":false,"sitting":false,"angry":false,"interested":false,"charged":false,"tamed":false,"orphaned":false,"leashed":false,"sheared":false,"gliding":false,"elder":false,"moving":false,"breathing":true,"chested":false,"stackable":false,"showbase":false,"rearing":false,"vibrating":false,"idling":false,"evoker_spell":false,"charge_attack":false,"wasd_controlled":false,"can_power_jump":false,"linger":false,"has_collision":true,"affected_by_gravity":true,"fire_immune":false,"dancing":false,"enchanted":false,"show_trident_rope":false,"container_private":false,"transforming":false,"spin_attack":false,"swimming":false,"bribed":false,"pregnant":false,"laying_egg":false,"rider_can_pick":false,"transition_sitting":false,"eating":false,"laying_down":false}}],"tick":"0","properties":{"ints":[],"floats":[]},"links":[]})
-        client.queue('set_health', get('set_health'))
+        client.queue('set_health', getPacketData('set_health'))
 
         client.queue('chunk_radius_update', { chunk_radius: 32 })
-        client.queue('respawn', get('respawn'))
+        client.queue('respawn', getPacketData('respawn'))
 
 
 
@@ -174,7 +176,9 @@ server.on('connect', client => {
         // missing chunks from the us if it's missing any within the radius. `radius` is in blocks.
         // TODO: Make better
         loop = setInterval(() => {
-          client.write('network_chunk_publisher_update', { coordinates: { x: serverData.respawnPacket.position.x, y: 47, z: serverData.respawnPacket.position.z }, radius: 160,"saved_chunks":[] })
+          if (serverData.players[client.profile.uuid].position) {
+            client.write('network_chunk_publisher_update', { coordinates: { x: serverData.players[client.profile.uuid].position.coordinates.x, y: serverData.players[client.profile.uuid].position.coordinates.y, z: serverData.players[client.profile.uuid].position.coordinates.z }, radius: 160,"saved_chunks":[] })
+          }
         }, 4500)
 
         // Wait some time to allow for the client to recieve and load all the chunks
@@ -232,7 +236,7 @@ server.on('connect', client => {
         }
 
         // Send the response
-        client.queue("subchunk", subchunkPacketData)
+        client.write("subchunk", subchunkPacketData)
       } else {
         console.warn(colors.yellow("WARN: Client requested subchunk", subchunkKey, "but it was not found, ignoring request"))
       }
